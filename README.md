@@ -2,6 +2,8 @@
 
 Copiloto IA para rebocadores (mapa Leaflet, Socket.io, sensores do dispositivo, chat e análise de imagem dos displays).
 
+A API de IA usa **Grok (xAI)** em modo compatível com OpenAI (`https://api.x.ai/v1`). Não há AISSTREAM; alvos na carta vêm de integrações futuras (ex.: Marine Traffic + Grok Vision).
+
 ## Arranque local
 
 ```bash
@@ -10,20 +12,23 @@ npm install
 npm start
 ```
 
-Abra `http://localhost:3000`. Opcional: defina `OPENAI_API_KEY` no `.env` para chat (`/api/chat`) e análise de capturas (`POST /analyze-screenshot`).
+Abra `http://localhost:3000`. Defina `GROK_API_KEY` (ou `XAI_API_KEY`) no `.env` para chat (`/api/chat`) e análise de capturas (`POST /analyze-screenshot`). Ajuste `GROK_CHAT_MODEL` e `GROK_VISION_MODEL` se a sua conta xAI usar outros nomes de modelo.
+
+Documentação xAI: [docs.x.ai](https://docs.x.ai/docs/tutorial).
 
 ## Estrutura
 
-- `server.js` — Express + Socket.io + rotas de API.
-- `public/` — UI estática (também publicada no Netlify).
-- `src/services/aisstream.service.js` — stub de alvos na carta (substituir por Marine Traffic / Grok conforme a doc interna).
+- `server.js` — Express + Socket.io + rotas de API (Grok).
+- `public/` — UI estática (Netlify).
+- `src/lib/grokClient.js` — cliente Grok (SDK `openai` + `baseURL` xAI).
+- `src/services/chartTargets.service.js` — stub de alvos na carta (sem AISSTREAM).
 - `src/sockets/sensorSocketHandler.js` — retransmissão de telemetria.
 
-## Deploy (quando ligar os serviços)
+## Deploy
 
-- **Railway:** raiz do repositório, `npm start`, healthcheck `GET /health`. Ver `railway.json`.
-- **Netlify:** `public` como diretório de publicação; ver `netlify.toml` na raiz ou `frontend/netlify.toml` se usar base `frontend`.
+- **Railway:** raiz, `npm start`, `GET /health`. Variáveis: `GROK_API_KEY`, etc.
+- **Netlify:** publicar pasta `public` (ver `netlify.toml` na raiz).
 
-Em produção, o front estático no Netlify precisa de **URL do backend** para `fetch` e `io()` — configure CORS e um `API_URL` / proxy quando for esse o próximo passo.
+Em produção, o front no Netlify precisa da **URL do backend** para `fetch` e `io()`.
 
-Repositório remoto: [github.com/Jbvix/sisnag](https://github.com/Jbvix/sisnag.git).
+Repositório: [github.com/Jbvix/sisnag](https://github.com/Jbvix/sisnag.git).

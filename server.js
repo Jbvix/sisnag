@@ -3,8 +3,9 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import { aisStreamService } from './src/services/aisstream.service.js';
+import { chartTargetsService } from './src/services/chartTargets.service.js';
 import { sensorSocketHandler } from './src/sockets/sensorSocketHandler.js';
+import { createGrokClient, grokChatModel, grokVisionModel } from './src/lib/grokClient.js';
 
 dotenv.config();
 
@@ -28,19 +29,19 @@ app.post('/analyze-screenshot', upload.single('screenshot'), async (req, res) =>
       return res.status(400).json({ error: 'Nenhum arquivo enviado (campo screenshot).' });
     }
 
-    const key = process.env.OPENAI_API_KEY;
-    if (!key) {
+    const grok = createGrokClient();
+    if (!grok) {
       return res.json({
-        analysis: `<p><strong>OPENAI_API_KEY</strong> não configurada no servidor.</p><p>Imagem recebida: ${req.file.mimetype}, ${req.file.size} bytes. No Railway, defina a variável de ambiente para habilitar análise por visão.</p>`,
+        analysis:
+          '<p>Defina <strong>GROK_API_KEY</strong> ou <strong>XAI_API_KEY</strong> no servidor (Railway / .env) para análise por Grok Vision.</p>' +
+          `<p>Imagem recebida: ${req.file.mimetype}, ${req.file.size} bytes.</p>`,
       });
     }
 
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({ apiKey: key });
     const b64 = req.file.buffer.toString('base64');
     const dataUrl = `data:${req.file.mimetype};base64,${b64}`;
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_VISION_MODEL || 'gpt-4o-mini',
+    const completion = await grok.chat.completions.create({
+      model: grokVisionModel(),
       messages: [
         {
           role: 'user',
@@ -61,7 +62,7 @@ app.post('/analyze-screenshot', upload.single('screenshot'), async (req, res) =>
     console.error(e);
     return res.status(500).json({
       error: String(e.message || e),
-      analysis: '<p>Falha ao analisar a imagem no servidor.</p>',
+      analysis: '<p>Falha ao analisar a imagem com Grok.</p>',
     });
   }
 });
@@ -72,19 +73,17 @@ app.post('/api/chat', async (req, res) => {
     return res.status(400).json({ error: 'Campo "message" (string) é obrigatório.' });
   }
 
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) {
+  const grok = createGrokClient();
+  if (!grok) {
     return res.json({
       reply:
-        'Servidor sem OPENAI_API_KEY. Configure no Railway ou em .env para respostas do modelo de chat.',
+        'Servidor sem GROK_API_KEY (ou XAI_API_KEY). Configure no Railway ou em .env para respostas do Grok.',
     });
   }
 
   try {
-    const { default: OpenAI } = await import('openai');
-    const openai = new OpenAI({ apiKey: key });
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
+    const completion = await grok.chat.completions.create({
+      model: grokChatModel(),
       messages: [
         {
           role: 'system',
@@ -105,7 +104,7 @@ app.post('/api/chat', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('Cliente mobile conectado (Starlink)');
 
-  aisStreamService.init(socket);
+  chartTargetsService.init(socket);
   sensorSocketHandler(socket);
 
   socket.on('disconnect', () => console.log('Cliente desconectado'));
@@ -114,5 +113,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`🚢 SISNAG — http://localhost:${PORT}`);
-  console.log('📱 Starlink + sensores + análise de displays (quando OPENAI_API_KEY estiver definida)');
+  console.log('📱 Grok (xAI) + sensores + visão em displays (GROK_API_KEY / XAI_API_KEY)');
 });
