@@ -1,0 +1,4 @@
+# Use esta pasta como "Base directory" no Netlify, ou prefira o netlify.toml na raiz do repositório.
+[build]
+  publish = "../public"
+  command = "exit 0"

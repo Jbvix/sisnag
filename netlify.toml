@@ -1,0 +1,4 @@
+# Site estático: a mesma pasta `public` servida pelo Express em produção no Railway.
+[build]
+  publish = "public"
+  command = "exit 0"

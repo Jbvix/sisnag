@@ -1,0 +1,25 @@
+nautical-ai-app/                          # ← Crie essa pasta no seu PC / Cursor
+├── backend/
+│   ├── src/
+│   │   ├── config/
+│   │   ├── services/
+│   │   ├── controllers/
+│   │   ├── agents/
+│   │   ├── sockets/
+│   │   └── utils/
+│   ├── public/                           # ← Tudo que o usuário vê (PWA)
+│   │   ├── index.html
+│   │   ├── js/
+│   │   │   ├── main.js
+│   │   │   ├── map.js
+│   │   │   ├── draw.js
+│   │   │   ├── chat.js
+│   │   │   ├── sensors.js                 # ← NOVO: GPS, bússola, acelerômetro
+│   │   │   └── camera-upload.js           # ← NOVO: screenshot MCPS/MTU
+│   │   └── css/styles.css
+│   ├── package.json
+│   ├── server.js                          # ← Entry point (atualizado)
+│   └── .env.example
+├── .gitignore
+├── README.md
+└── railway.json
