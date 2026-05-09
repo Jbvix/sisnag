@@ -29,6 +29,9 @@
           if (statusEl) {
             statusEl.textContent = `📍 ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)} | ${data.sog} kn`;
           }
+          if (typeof window.__sisnagSetVesselPosition === 'function') {
+            window.__sisnagSetVesselPosition(data.lat, data.lon, data.sog);
+          }
         },
         (err) => gpsErrorNote(err),
         { enableHighAccuracy: true, maximumAge: 5000 },

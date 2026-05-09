@@ -64,4 +64,10 @@ Se o deploy falhar com **ERESOLVE** / `langchain` vs `@langchain/core`: o códig
 
 **Não** coloque `GROK_API_KEY` no Netlify para o site estático atual (ficaria exposta no JS gerado). Chaves só no Railway.
 
+### Railway: `SIGTERM` e `npm warn config production`
+
+- **`SIGTERM` no comando `node server.js`**: em muitos casos não é erro de código, e sim o **Railway a parar um deploy anterior** quando publica uma versão nova, ou o **restart** quando o **healthcheck** falha repetidamente. Nos logs procure **`[sisnag] listening pid=…`** logo após o arranque; se **nunca** aparece, há uma excepção antes de `listen()` (reveja variáveis e build).
+- O **deploy** usa `startCommand`: `node server.js` (sem `npm start`) para o processo ser o próprio Node. O **`healthcheckTimeout`** está alto (300 s) por defeito para arranques lentos.
+- O aviso **`npm warn config production Use --omit=dev`** vem da combinação **NPM 10 + `NODE_ENV=production`**; é cosmético. Pode ignorar ou definir nas variáveis do serviço: `NPM_CONFIG_OMIT=dev`.
+
 Repositório: [github.com/Jbvix/sisnag](https://github.com/Jbvix/sisnag.git).

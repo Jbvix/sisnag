@@ -6,6 +6,14 @@
     window.initSisnagLayersMenu(map);
   }
 
+  if (typeof window.initNavigationOverlay === 'function') {
+    window.initNavigationOverlay(map);
+  }
+
+  if (typeof window.initFuelPanel === 'function') {
+    window.initFuelPanel();
+  }
+
   const apiOrigin = typeof window.__sisnagApiOrigin === 'function' ? window.__sisnagApiOrigin() : '';
   const socket = apiOrigin ? io(apiOrigin) : io();
 

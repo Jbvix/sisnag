@@ -1,12 +1,5 @@
 /* global L, window, document */
 (function marineTrafficEmbed(global) {
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-  }
-
   /**
    * URL oficial de embed AIS (parâmetros documentados pela MarineTraffic).
    * @see https://www.marinetraffic.com/en/p/embed-map
@@ -19,7 +12,6 @@
   }
 
   global.initMarineTrafficEmbed = function initMarineTrafficEmbed(map, socket) {
-    const markersLayer = L.layerGroup().addTo(map);
     const panel = document.getElementById('mt-panel');
     const iframe = document.getElementById('mt-iframe');
     const statusEl = document.getElementById('targets-status');
@@ -45,6 +37,7 @@
       panel.classList.add('is-open');
       syncIframeFromMap();
       setStatus('Marine Traffic incorporado: use captura de ecrã do mapa e “Captura → Grok”.');
+      if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
     }
 
     global.openMarineTrafficPanel = openPanel;
@@ -55,6 +48,7 @@
     if (btnClose && panel) {
       btnClose.addEventListener('click', () => {
         panel.classList.remove('is-open');
+        if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
       });
     }
     if (btnSync) btnSync.addEventListener('click', syncIframeFromMap);
@@ -94,24 +88,9 @@
 
     socket.on('vessels', (payload) => {
       if (!payload || !Array.isArray(payload.ships)) return;
-      markersLayer.clearLayers();
-      payload.ships.forEach((s) => {
-        if (s.lat == null || s.lon == null || !Number.isFinite(s.lat) || !Number.isFinite(s.lon)) return;
-        const m = L.circleMarker([s.lat, s.lon], {
-          radius: 7,
-          color: '#0369a1',
-          weight: 2,
-          fillColor: '#38bdf8',
-          fillOpacity: 0.9,
-        });
-        const lines = [`<strong>${escapeHtml(s.name || 'Navio')}</strong>`];
-        if (s.mmsi) lines.push('MMSI: ' + escapeHtml(s.mmsi));
-        if (s.sog != null) lines.push(`SOG: ${s.sog} kn`);
-        if (s.cog != null) lines.push(`COG: ${s.cog}°`);
-        if (s.source) lines.push(`Fonte: ${escapeHtml(s.source)}`);
-        m.bindPopup(lines.join('<br>'));
-        m.addTo(markersLayer);
-      });
+      if (typeof global.__sisnagSetAisMarkers === 'function') {
+        global.__sisnagSetAisMarkers(payload.ships);
+      }
       if (payload.message) setStatus(payload.message);
     });
   };

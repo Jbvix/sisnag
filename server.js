@@ -174,6 +174,26 @@ io.on('connection', (socket) => {
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
+
+/** Railway envia SIGTERM ao trocar deploy, escalar ou healthcheck repetido — não é sempre crash. */
+function shutdown(signal) {
+  console.warn('[sisnag] Received ' + signal + ' — encerramento');
+  try {
+    if (typeof io.disconnectSockets === 'function') io.disconnectSockets(true);
+  } catch {
+    /* ignore */
+  }
+  httpServer.close(() => process.exit(0));
+  setTimeout(() => process.exit(0), 10000).unref();
+}
+
+process.once('SIGTERM', () => shutdown('SIGTERM'));
+process.once('SIGINT', () => shutdown('SIGINT'));
+
+httpServer.once('listening', () => {
+  console.log('[sisnag] listening pid=' + process.pid + ' port=' + PORT + ' host=' + HOST);
+});
+
 httpServer.listen(PORT, HOST, () => {
   console.log(`🚢 SISNAG — http://${HOST}:${PORT}`);
   console.log(corsStartupLogLine());

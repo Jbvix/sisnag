@@ -8,62 +8,201 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <link rel="manifest" href="/manifest.json" />
   <style>
-    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
-    #map { height: 100vh; width: 100vw; }
-    #mt-panel {
-      display: none;
-      position: fixed;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: min(58vh, 520px);
-      z-index: 700;
-      background: #0f172a;
-      color: #e2e8f0;
-      flex-direction: column;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
-    }
-    #mt-panel.is-open { display: flex; }
+    html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; overflow: hidden; }
+    #map { position: fixed; inset: 0; z-index: 100; height: 100vh; width: 100vw; }
 
-    #windy-panel {
-      display: none;
-      position: fixed;
-      left: 0;
-      right: 0;
-      top: 0;
-      height: min(58vh, 520px);
-      z-index: 710;
-      background: #0c4a6e;
-      color: #e0f2fe;
-      flex-direction: column;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    :root {
+      --sisnag-windy-opacity: 0.82;
+      --sisnag-mt-opacity: 0.82;
     }
-    #windy-panel.is-open { display: flex; }
-    #windy-panel .windy-toolbar {
+
+    /* Embeds em ecrã completo: transparência no painel vé o mapa através. */
+    #embed-stack {
+      position: fixed;
+      inset: 0;
+      z-index: 640;
+      pointer-events: none;
+    }
+    #embed-stack.has-open-pointer { pointer-events: auto; }
+    #embed-stack.embed-click-through { pointer-events: none; }
+    #embed-stack.embed-click-through .embed-toolbar { pointer-events: auto; }
+    #embed-stack:not(.embed-click-through) .embed-shell iframe { pointer-events: auto; }
+    #embed-stack.embed-click-through .embed-shell iframe { pointer-events: none !important; }
+
+    #windy-panel, #mt-panel {
+      display: none;
+      flex-direction: column;
+      position: absolute;
+      inset: 0;
+      color: #e2e8f0;
+    }
+    #windy-panel.is-open, #mt-panel.is-open { display: flex; }
+    #windy-panel.is-open { z-index: 641; }
+    #mt-panel.is-open { z-index: 642; }
+
+    /* Transparência só na área do mapa externo — barra de ferramentas fica legível */
+    #windy-panel.is-open .embed-shell { opacity: var(--sisnag-windy-opacity); }
+    #mt-panel.is-open .embed-shell { opacity: var(--sisnag-mt-opacity); }
+
+    .embed-toolbar {
+      flex-shrink: 0;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
       padding: 10px 12px;
-      border-bottom: 1px solid #0369a1;
+      background: rgba(15, 23, 42, 0.94);
+      border-bottom: 1px solid #334155;
       font-size: 13px;
+      pointer-events: auto;
+      z-index: 2;
     }
-    #windy-panel .windy-toolbar button {
+    #windy-panel .embed-toolbar { border-bottom-color: #0369a1; background: rgba(12, 74, 110, 0.95); color: #e0f2fe; }
+
+    .embed-toolbar button {
       padding: 8px 12px;
       border-radius: 8px;
       border: none;
       cursor: pointer;
       font-weight: 600;
-      background: #075985;
-      color: #f0f9ff;
+      background: #1e293b;
+      color: #f8fafc;
     }
-    #windy-iframe { flex: 1; width: 100%; border: 0; min-height: 200px; background: #082f49; }
+    #windy-panel .embed-toolbar button { background: #075985; color: #f0f9ff; }
+
+    .embed-shell {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      background: transparent;
+    }
+    .embed-shell iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      background: rgba(15,23,42,0.08);
+    }
+
+    /* Derrota, waypoints e embarcação por cima de tudo (mapa só vectorial, sincronizado). */
+    #map-vector-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 800;
+      pointer-events: none;
+    }
+    #map-vector-overlay .leaflet-container {
+      background: transparent !important;
+    }
+
+    .sisnag-ownship .sisnag-ownship-inner {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.85));
+    }
+    .sisnag-ownship-tri {
+      width: 0;
+      height: 0;
+      border-left: 10px solid transparent;
+      border-right: 10px solid transparent;
+      border-bottom: 22px solid #ef4444;
+      transform-origin: center 70%;
+    }
+    .sisnag-ownship small {
+      display: none;
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: white;
+      text-shadow: 0 1px 2px #000;
+    }
+    .sisnag-wp-pin {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: linear-gradient(#fbbf24,#d97706);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    /* Painel navegação (botões). */
+    .nav-controls {
+      position: fixed;
+      top: auto;
+      left: 10px;
+      bottom: calc(52vh + env(safe-area-inset-bottom));
+      max-width: min(92vw, 220px);
+      z-index: 920;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    @media (max-height: 600px) {
+      .nav-controls { bottom: 120px; }
+    }
+    .nav-controls button {
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 12px;
+      text-align: left;
+      background: rgba(17,24,39,0.92);
+      color: #f9fafb;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    }
+    .nav-controls button.secondary { background: rgba(59,130,246,0.95); color: #020617; }
+
+    #nav-wp-sheet {
+      position: fixed;
+      left: 10px;
+      bottom: 10px;
+      width: min(280px, 92vw);
+      max-height: 38vh;
+      overflow: auto;
+      z-index: 925;
+      background: rgba(15,23,42,0.95);
+      color: #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 13px;
+      box-shadow: 0 8px 28px rgba(0,0,0,.4);
+      display: none;
+    }
+    #nav-wp-sheet.is-open { display: block; }
+    #nav-wp-sheet .nav-wp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .nav-wp-row {
+      display: grid;
+      grid-template-columns: 1fr auto auto auto;
+      gap: 6px;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid #334155;
+      font-size: 12px;
+    }
+    .nav-wp-row button { padding: 4px 8px; border-radius: 6px; border: none; cursor: pointer; font-size: 11px; }
+    #fuel-badge {
+      margin-top: 6px;
+      font-size: 11px;
+      opacity: .9;
+      line-height: 1.35;
+    }
 
     .sisnag-hb {
       position: fixed;
       top: 10px;
       right: 10px;
-      z-index: 800;
+      z-index: 930;
       width: 48px;
       height: 48px;
       border: none;
@@ -79,21 +218,21 @@
     .sisnag-layers-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 780;
+      z-index: 905;
       background: rgba(0,0,0,0.45);
     }
     .sisnag-layers-drawer {
       position: fixed;
       top: 0;
       right: 0;
-      width: min(300px, 88vw);
+      width: min(320px, 90vw);
       max-height: 100vh;
       overflow: auto;
-      z-index: 790;
+      z-index: 910;
       background: #0f172a;
       color: #e2e8f0;
       box-shadow: -8px 0 28px rgba(0,0,0,0.4);
-      padding: 0 0 20px;
+      padding: 0 0 24px;
     }
     .sisnag-layers-head {
       display: flex;
@@ -128,7 +267,9 @@
       font-size: 14px;
       cursor: pointer;
     }
-    .sisnag-row input { flex-shrink: 0; }
+    .sisnag-slider-row label { font-size: 12px; display: block; margin-bottom: 4px; }
+    .sisnag-slider-row input[type="range"] { width: 100%; }
+    .sisnag-row input[type="checkbox"] { flex-shrink: 0; }
     .sisnag-panel-btn {
       display: block;
       width: 100%;
@@ -143,66 +284,68 @@
       color: #fff;
     }
     .sisnag-panel-btn:hover { background: #2563eb; }
-    #mt-panel .mt-toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      align-items: center;
-      padding: 10px 12px;
-      border-bottom: 1px solid #334155;
-      font-size: 13px;
-    }
-    #mt-panel .mt-toolbar button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      background: #1e293b;
-      color: #f8fafc;
-    }
-    #mt-panel .mt-toolbar button:hover { background: #334155; }
-    #mt-iframe { flex: 1; width: 100%; border: 0; min-height: 200px; background: #020617; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <div id="mt-panel" aria-label="Marine Traffic incorporado">
-    <div class="mt-toolbar">
-      <span style="font-weight:700;">Marine Traffic (embed)</span>
-      <button type="button" id="mt-close" title="Fechar">✕ Fechar</button>
-      <button type="button" id="mt-sync-map" title="Centrar embed no mapa OSM">↻ Centro = mapa OSM</button>
-      <button type="button" id="mt-capture-grok">📸 Captura → Grok alvos</button>
-      <button type="button" id="mt-socket-refresh">🔔 Avisar refresh (socket)</button>
+  <div id="embed-stack" class="embed-stack embed-interact" aria-hidden="true">
+    <div id="windy-panel" class="embed-panel" aria-label="Windy meteorologia">
+      <div class="embed-toolbar windy-toolbar">
+        <span style="font-weight:700;">Windy — ecrã completo</span>
+        <button type="button" id="windy-close" title="Fechar">✕ Fechar</button>
+        <button type="button" id="windy-sync-map" title="Centro">↻ Centro = mapa</button>
+      </div>
+      <div class="embed-shell">
+        <iframe id="windy-iframe" title="Windy map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
     </div>
-    <iframe id="mt-iframe" title="Marine Traffic AIS" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+
+    <div id="mt-panel" class="embed-panel" aria-label="Marine Traffic incorporado">
+      <div class="embed-toolbar mt-toolbar">
+        <span style="font-weight:700;">Marine Traffic — ecrã completo</span>
+        <button type="button" id="mt-close" title="Fechar">✕ Fechar</button>
+        <button type="button" id="mt-sync-map" title="Centro">↻ Centro = mapa</button>
+        <button type="button" id="mt-capture-grok">📸 Captura → Grok</button>
+        <button type="button" id="mt-socket-refresh">🔔 Socket refresh</button>
+      </div>
+      <div class="embed-shell">
+        <iframe id="mt-iframe" title="Marine Traffic AIS" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
   </div>
 
-  <div id="windy-panel" aria-label="Windy meteorologia">
-    <div class="windy-toolbar">
-      <span style="font-weight:700;">Windy</span>
-      <button type="button" id="windy-close" title="Fechar">✕ Fechar</button>
-      <button type="button" id="windy-sync-map" title="Centro = mapa principal">↻ Centro = mapa</button>
-    </div>
-    <iframe id="windy-iframe" title="Windy map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
-  </div>
+  <div id="map-vector-overlay"></div>
 
-  <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.82); color:white; padding:12px 14px; border-radius:10px; font-size:14px; max-width: min(92vw, 380px); z-index:600;">
+  <div style="position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.82); color:white; padding:12px 14px; border-radius:10px; font-size:14px; max-width:min(92vw, 360px); z-index:900;">
     <div>🌐 Starlink: <span id="status">Conectado</span></div>
     <div id="sensors-status">📍 GPS: aguardando…</div>
     <div id="targets-status" style="margin-top:8px; font-size:12px; opacity:0.95; line-height:1.35;">Alvos: —</div>
     <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
-      <button type="button" id="btn-mt-embed" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; background:#0ea5e9; color:#0f172a;">
+      <button type="button" id="btn-mt-embed" class="secondary" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; background:#0ea5e9; color:#0f172a;">
         🗺️ Marine Traffic
       </button>
-      <button type="button" id="btn-screenshot" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600;">
+      <button type="button" id="btn-screenshot" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; background:#f1f5f9; color:#0f172a;">
         📸 MCPS/MTU
       </button>
     </div>
   </div>
 
-  <div id="chat" style="position:absolute; bottom:10px; right:10px; width:min(96vw, 380px); height:min(52vh, 520px); background:rgba(255,255,255,0.96); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; z-index:500;"></div>
+  <div class="nav-controls">
+    <button type="button" id="nav-import-gpx" class="secondary">📂 Importar GPX</button>
+    <button type="button" id="nav-new-wp">⚓ Novo waypoint (toque no mapa)</button>
+    <button type="button" id="nav-toggle-wp">📍 Lista / editar waypoints</button>
+    <button type="button" id="nav-fuel" class="secondary">⛽ Consumo L/h</button>
+    <div id="fuel-badge"></div>
+  </div>
+
+  <div id="nav-wp-sheet">
+    <div class="nav-wp-head"><strong>Waypoints</strong><button type="button" id="nav-wp-close" style="background:#334155;border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;">✕</button></div>
+    <p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">Arraste os marcadores no mapa superior. Botão editar corrige nome e coordenadas.</p>
+    <div id="nav-wp-list"></div>
+  </div>
+
+  <div id="chat" style="position:fixed; bottom:10px; right:10px; width:min(96vw, 380px); height:min(52vh, 520px); background:rgba(255,255,255,0.96); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; z-index:880;"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
@@ -212,12 +355,22 @@
   <script src="/js/sensors.js"></script>
   <script src="/js/chat.js"></script>
   <script src="/js/camera-upload.js"></script>
+  <script src="/js/fuelPanel.js"></script>
+  <script src="/js/navigationOverlay.js"></script>
   <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('btn-screenshot').addEventListener('click', function () {
       if (typeof window.captureScreenshot === 'function') window.captureScreenshot();
+    });
+    document.getElementById('nav-toggle-wp').addEventListener('click', function () {
+      var s = document.getElementById('nav-wp-sheet');
+      if (s) s.classList.toggle('is-open');
+    });
+    document.getElementById('nav-wp-close').addEventListener('click', function () {
+      var s = document.getElementById('nav-wp-sheet');
+      if (s) s.classList.remove('is-open');
     });
   </script>
 </body>
