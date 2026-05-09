@@ -1,6 +1,11 @@
 /* global L, io, window, document */
 (function main() {
-  const map = L.map('map').setView([-12.97, -38.48], 9);
+  const map = L.map('map', {
+    preferCanvas: false,
+    /** Em ecrãs retina, detectRetina nos tiles pede zoom+1 e pode deixar camadas em branco em alguns servidores. */
+    zoomAnimation: true,
+  }).setView([-12.97, -38.48], 9);
+  window.__sisnagMainLeafletMap = map;
 
   /** Leaflet com contentor 100vh pode medir 0×0 no 1.º frame — força relayout para carregar tiles. */
   function sisnagMapResize() {
@@ -44,6 +49,7 @@
   if (typeof window.initChat === 'function') {
     window.initChat(socket);
   }
+  setTimeout(sisnagMapResize, 80);
 
   function sisnagStarlinkUiOnline() {
     var el = document.getElementById('sisnag-icon-starlink');

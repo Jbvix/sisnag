@@ -14,10 +14,10 @@
       --sisnag-mt-opacity: 0.82;
       /** Altura do chat no rodapé — mapa e overlays respeitam para não ficar por baixo. */
       --sisnag-footer-chat-h: clamp(200px, 36vh, 320px);
-      /** Mapas sempre atrás; UI (docas, chat, gavetas) na frente. */
-      --sisnag-z-map: 10;
-      --sisnag-z-embed: 20;
-      --sisnag-z-vector: 35;
+      /** Mapa base acima do stack de embeds (transparente) para os tiles pintarem; vector e UI acima. */
+      --sisnag-z-embed: 18;
+      --sisnag-z-map: 32;
+      --sisnag-z-vector: 48;
       --sisnag-z-chat: 10080;
       --sisnag-z-status: 10090;
       --sisnag-z-dock: 10100;
