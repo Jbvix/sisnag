@@ -2,6 +2,19 @@
 (function attachSensors(global) {
   global.startSensors = function startSensors(socket) {
     const statusEl = document.getElementById('sensors-status');
+    function gpsErrorNote(err) {
+      if (!statusEl) return;
+      var code = err && err.code;
+      if (code === 1) {
+        statusEl.textContent =
+          '📍 GPS bloqueado: reponha permissão em “Informações da página” (ícone 🔒 ao lado da URL no Chrome).';
+      } else if (code === 2 || code === 3) {
+        statusEl.textContent = '📍 GPS temporariamente indisponível ou sem fix (tente outra vez ao ar livre).';
+      } else {
+        statusEl.textContent = '📍 GPS: permissão ou erro (' + String(code != null ? code : '') + ').';
+      }
+    }
+
     if (navigator.geolocation) {
       navigator.geolocation.watchPosition(
         (pos) => {
@@ -17,7 +30,7 @@
             statusEl.textContent = `📍 ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)} | ${data.sog} kn`;
           }
         },
-        (err) => console.error('GPS', err),
+        (err) => gpsErrorNote(err),
         { enableHighAccuracy: true, maximumAge: 5000 },
       );
     } else if (statusEl) {

@@ -1,27 +1,41 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { chartTargetsService } from './src/services/chartTargets.service.js';
 import { extractVesselsFromMarineTrafficScreenshot } from './src/services/marineTrafficGrok.service.js';
 import { sensorSocketHandler } from './src/sockets/sensorSocketHandler.js';
 import { createGrokClient, grokChatModel, grokVisionModel } from './src/lib/grokClient.js';
+import { createCorsOriginCallback, corsStartupLogLine } from './src/http/corsConfig.js';
 
 dotenv.config();
 
-const app = express();
-const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin: '*' } });
+const corsOrigin = createCorsOriginCallback();
 
-/** Browser no Netlify chama API no Railway (origem diferente). */
-app.use((req, res, next) => {
-  const allow = process.env.CORS_ORIGIN || '*';
-  res.setHeader('Access-Control-Allow-Origin', allow);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
-  next();
+const app = express();
+app.set('trust proxy', 1);
+
+app.use(
+  cors({
+    origin: corsOrigin,
+    methods: ['GET', 'HEAD', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: false,
+    optionsSuccessStatus: 204,
+  }),
+);
+
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: corsOrigin,
+    methods: ['GET', 'POST'],
+    credentials: false,
+  },
+  allowEIO3: true,
 });
 
 const upload = multer({
@@ -158,8 +172,10 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => console.log('Cliente desconectado'));
 });
 
-const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
-  console.log(`🚢 SISNAG — http://localhost:${PORT}`);
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+httpServer.listen(PORT, HOST, () => {
+  console.log(`🚢 SISNAG — http://${HOST}:${PORT}`);
+  console.log(corsStartupLogLine());
   console.log('📱 Grok + Marine Traffic incorporado (captura → /api/chart-targets/from-screenshot)');
 });

@@ -31,9 +31,22 @@ Documentação xAI: [docs.x.ai](https://docs.x.ai/docs/tutorial).
 
 ### Railway (API + Grok + Socket.io)
 
-- Raiz do repo, `npm start`, healthcheck `GET /health`.
-- **Obrigatório (segredo):** `GROK_API_KEY` ou `XAI_API_KEY`, e opcionalmente `GROK_CHAT_MODEL`, `GROK_VISION_MODEL`, `GROK_API_BASE_URL`.
-- **CORS:** com o site no Netlify, defina `CORS_ORIGIN` para o URL exato do site (ex.: `https://sisnag.netlify.app`) ou use `*` só em testes.
+1. No [Railway](https://railway.com), **New project → Deploy from GitHub** e escolha o repositório `sisnag`.
+2. **Root directory:** deixe vazio (raiz), onde estão `server.js`, `package.json` e `railway.json`.
+3. O **Railpack** (predefinição) deteta Node e corre `npm install` + `npm start`. O ficheiro `railway.json` define healthcheck em `GET /health`, timeout 120 s e `watchPatterns` para redesploiar quando mudar `server.js`, `src/`, `public/` ou dependências.
+4. Em **Variables** do serviço, configure as variáveis da tabela abaixo. O **PORT** é injectado pela Railway — não defina manualmente a menos que saiba o que está a fazer.
+5. Após o primeiro deploy, copie o **URL público do Railway** (ex.: `https://sisnag-production.up.railway.app`) e coloque-o no Netlify como `SISNAG_API_ORIGIN`. Na **Railway**, em Variables, defina `CORS_ORIGIN` com o **URL do site Netlify** (ex.: `https://sisnag.netlify.app`), para o browser poder chamar a API e o Socket.io.
+
+| Variável | Obrigatória | Descrição |
+|----------|-------------|-----------|
+| `GROK_API_KEY` ou `XAI_API_KEY` | Sim (IA) | Chave em [console.x.ai](https://console.x.ai/). |
+| `CORS_ORIGIN` | Recomendada | URL **exato** do site Netlify **sem barra no fim**, ex. `https://sisnag.netlify.app`. Se estiver errado ou com `/` no fim, o browser bloqueia Socket.io e `/api/*`. Várias origens: vírgula. Deixe **vazio** ou `*` para modo permissivo (só testes). Após deploy, veja nos logs do Railway a linha `[CORS] ...`. |
+| `GROK_API_BASE_URL` | Não | Predefinido `https://api.x.ai/v1`. |
+| `GROK_CHAT_MODEL` | Não | Ex.: `grok-2-latest`. |
+| `GROK_VISION_MODEL` | Não | Ex.: `grok-2-vision-latest`. |
+| `HOST` | Não | Predefinido `0.0.0.0` (correcto atrás do proxy da Railway). |
+
+O servidor usa `trust proxy` e escuta em `0.0.0.0` para o proxy da Railway. Socket.io usa a mesma lógica de origens que `CORS_ORIGIN` (lista ou `*`).
 
 ### Netlify (só ficheiros estáticos de `public/`)
 
