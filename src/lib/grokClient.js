@@ -13,9 +13,9 @@ export function createGrokClient() {
 }
 
 export function grokChatModel() {
-  return process.env.GROK_CHAT_MODEL || 'grok-2-latest';
+  return process.env.GROK_CHAT_MODEL || 'grok-4.3';
 }
 
 export function grokVisionModel() {
-  return process.env.GROK_VISION_MODEL || 'grok-2-vision-latest';
+  return process.env.GROK_VISION_MODEL || 'grok-4.3';
 }

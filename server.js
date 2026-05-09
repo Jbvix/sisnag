@@ -30,6 +30,7 @@ app.use(
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
+  serveClient: false, // cliente via CDN no Netlify; evita camada extra no http.Server
   cors: {
     origin: corsOrigin,
     methods: ['GET', 'POST'],

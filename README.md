@@ -42,8 +42,8 @@ Documentação xAI: [docs.x.ai](https://docs.x.ai/docs/tutorial).
 | `GROK_API_KEY` ou `XAI_API_KEY` | Sim (IA) | Chave em [console.x.ai](https://console.x.ai/). |
 | `CORS_ORIGIN` | Recomendada | URL **exato** do site Netlify **sem barra no fim**, ex. `https://sisnag.netlify.app`. Se estiver errado ou com `/` no fim, o browser bloqueia Socket.io e `/api/*`. Várias origens: vírgula. Deixe **vazio** ou `*` para modo permissivo (só testes). Após deploy, veja nos logs do Railway a linha `[CORS] ...`. |
 | `GROK_API_BASE_URL` | Não | Predefinido `https://api.x.ai/v1`. |
-| `GROK_CHAT_MODEL` | Não | Ex.: `grok-2-latest`. |
-| `GROK_VISION_MODEL` | Não | Ex.: `grok-2-vision-latest`. |
+| `GROK_CHAT_MODEL` | Não | Predefinido `grok-4.3`. Veja [modelos xAI](https://docs.x.ai/docs/models). |
+| `GROK_VISION_MODEL` | Não | Predefinido `grok-4.3` (multimodal). |
 | `HOST` | Não | Predefinido `0.0.0.0` (correcto atrás do proxy da Railway). |
 
 O servidor usa `trust proxy` e escuta em `0.0.0.0` para o proxy da Railway. Socket.io usa a mesma lógica de origens que `CORS_ORIGIN` (lista ou `*`).
@@ -63,6 +63,15 @@ O comando de build está em `netlify.toml`: `npm run build:netlify` (escreve `co
 Se o deploy falhar com **ERESOLVE** / `langchain` vs `@langchain/core`: o código atual **não depende de LangChain** (apenas Grok). Atualize o `package.json` na branch que o Netlify usa (remova `langchain`) e faça push do `package-lock.json` gerado com `npm install`. O `netlify.toml` inclui `NPM_CONFIG_LEGACY_PEER_DEPS` como rede de segurança durante o install.
 
 **Não** coloque `GROK_API_KEY` no Netlify para o site estático atual (ficaria exposta no JS gerado). Chaves só no Railway.
+
+### Railway: `Application not found` (404 no edge)
+
+Se `curl` a `https://<o-seu-dominio>.up.railway.app/health` devolver **404** com corpo JSON **`"message":"Application not found"`** e cabeçalho **`X-Railway-Fallback: true`**, o problema **não** é CORS nem Socket.io na app: esse URL **não está ligado a nenhum serviço deployado** (projecto apagado/recreado, URL antigo, rede pública desligada ou deploy em falha).
+
+1. No projeto Railway, confirme que o serviço tem **deploy com sucesso** e **Public networking** ligado.
+2. Copie o **URL público actual** em *Settings → Networking* (gere domínio novo se necessário).
+3. Actualize no Netlify **`SISNAG_API_ORIGIN`** para esse URL (sem `/` no fim) e faça **novo build**.
+4. Só depois disso vale a pena validar **`CORS_ORIGIN`** com o URL do Netlify; antes disso o browser mostrará *Failed to fetch* / CORS porque a resposta vem do proxy da Railway, não do Express.
 
 ### Railway: `SIGTERM` e `npm warn config production`
 
