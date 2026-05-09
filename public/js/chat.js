@@ -13,9 +13,7 @@
     const wrap = document.getElementById('chat-messages');
     if (!wrap) return;
     const row = document.createElement('div');
-    row.style.marginBottom = '8px';
-    row.style.fontSize = '13px';
-    row.style.lineHeight = '1.35';
+    row.className = 'sisnag-chat-line';
     const who = document.createElement('strong');
     who.textContent = sender + ': ';
     row.appendChild(who);
@@ -34,47 +32,62 @@
     const root = document.getElementById('chat');
     if (!root) return;
 
+    root.removeAttribute('hidden');
     root.style.display = 'flex';
     root.style.flexDirection = 'column';
     root.innerHTML = '';
 
     const header = document.createElement('div');
-    header.style.padding = '10px 12px';
-    header.style.borderBottom = '1px solid #e5e7eb';
-    header.style.fontWeight = '600';
-    header.textContent = 'Agente IA';
+    header.className = 'sisnag-chat-head';
+    header.textContent = 'Copiloto IA';
     root.appendChild(header);
 
     const messages = document.createElement('div');
     messages.id = 'chat-messages';
-    messages.style.flex = '1';
-    messages.style.overflow = 'auto';
-    messages.style.padding = '10px 12px';
+    messages.className = 'sisnag-chat-messages';
     root.appendChild(messages);
 
     const form = document.createElement('div');
-    form.style.display = 'flex';
-    form.style.gap = '8px';
-    form.style.padding = '10px 12px';
-    form.style.borderTop = '1px solid #e5e7eb';
+    form.className = 'sisnag-chat-form';
 
     const input = document.createElement('input');
     input.type = 'text';
     input.placeholder = 'Mensagem…';
-    input.style.flex = '1';
-    input.style.padding = '8px 10px';
-    input.style.borderRadius = '8px';
-    input.style.border = '1px solid #d1d5db';
+    input.className = 'sisnag-chat-input';
+    input.autocomplete = 'off';
+    input.enterKeyHint = 'send';
 
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.textContent = 'Enviar';
-    btn.style.padding = '8px 12px';
-    btn.style.borderRadius = '8px';
+    btn.className = 'sisnag-chat-send';
     btn.style.border = 'none';
     btn.style.background = '#1d4ed8';
     btn.style.color = '#fff';
     btn.style.cursor = 'pointer';
+
+    function nearPayloadForSealagom() {
+      const out = {};
+      const gps = global.__sisnagLastKnownGps;
+      if (gps && Number.isFinite(gps.lat) && Number.isFinite(gps.lng)) {
+        out.lat = gps.lat;
+        out.lng = gps.lng;
+        return out;
+      }
+      try {
+        const mm = global.__sisnagMainMap;
+        if (mm && typeof mm.getCenter === 'function') {
+          const c = mm.getCenter();
+          if (Number.isFinite(c.lat) && Number.isFinite(c.lng)) {
+            out.lat = c.lat;
+            out.lng = c.lng;
+          }
+        }
+      } catch (e) {
+        /* ignore */
+      }
+      return out;
+    }
 
     async function send() {
       const text = input.value.trim();
@@ -82,10 +95,11 @@
       input.value = '';
       addChatMessage('Você', escapeHtml(text));
       try {
+        const coords = nearPayloadForSealagom();
         const res = await fetch(window.__sisnagApiUrl('/api/chat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text }),
+          body: JSON.stringify({ message: text, ...coords }),
         });
         const data = await res.json().catch(() => ({}));
         const reply = data.reply || data.error || 'Sem resposta do servidor.';

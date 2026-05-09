@@ -6,6 +6,8 @@
 (function navigationOverlay(global) {
   var vectorMap = null;
   var gpxLine = null;
+  /** Polilinha pela ordem da lista (#1 → #2 → …); distinta da derrota GPX (trk/rte). */
+  var waypointLegPolyline = null;
   var waypoints = []; // { id, lat, lng, name, marker }
   var waypointGroup = null;
   var vesselMarker = null;
@@ -30,15 +32,73 @@
     wp.lat = lat;
     wp.lng = lng;
     wp.name = name || wp.name || 'Waypoint';
-    if (wp.marker) {
-      wp.marker.setLatLng([lat, lng]);
-      wp.marker.setPopupContent(escapePopup(wp));
-    }
+    if (wp.marker) wp.marker.setLatLng([lat, lng]);
+    saveWaypointsLs();
+    refreshWaypointNumerationAndLegs();
+    renderWaypointList();
   }
 
-  function escapePopup(wp) {
+  /** Ordem de seguimento: índice 1-based na lista `waypoints`. */
+  function escapePopup(wp, orderNum) {
+    var seq = typeof orderNum === 'number' && orderNum >= 1 ? orderNum : waypoints.indexOf(wp) + 1;
     var safe = global.__sisnagEscapeHtml ? global.__sisnagEscapeHtml(wp.name) : String(wp.name);
-    return '<b>' + safe + '</b><br>' + wp.lat.toFixed(5) + ', ' + wp.lng.toFixed(5);
+    return (
+      '<b>#' +
+      seq +
+      '</b> · ' +
+      safe +
+      '<br><small>' +
+      wp.lat.toFixed(5) +
+      ', ' +
+      wp.lng.toFixed(5) +
+      '</small>'
+    );
+  }
+
+  function buildWaypointNumberIcon(orderNum) {
+    var txt = Math.max(1, Math.round(Number(orderNum) || 1));
+    var safe = txt > 99 ? '⋯' : String(txt);
+    return L.divIcon({
+      className: 'sisnag-wp-icon',
+      html: '<div class="sisnag-wp-num">' + safe + '</div>',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16],
+    });
+  }
+
+  function refreshWaypointNumerationAndLegs() {
+    if (!vectorMap || !waypointGroup) return;
+    waypoints.forEach(function (wp, i) {
+      var n = i + 1;
+      if (wp.marker) {
+        wp.marker.setIcon(buildWaypointNumberIcon(n));
+        wp.marker.setPopupContent(escapePopup(wp, n));
+      }
+    });
+    if (waypointLegPolyline && waypointGroup.removeLayer) {
+      try {
+        waypointGroup.removeLayer(waypointLegPolyline);
+      } catch (e) {
+        /* ignore */
+      }
+      waypointLegPolyline = null;
+    }
+    if (waypoints.length >= 2) {
+      waypointLegPolyline = L.polyline(
+        waypoints.map(function (w) {
+          return [w.lat, w.lng];
+        }),
+        {
+          color: '#ca8a04',
+          weight: 3,
+          opacity: 0.92,
+          dashArray: '10 8',
+          lineCap: 'round',
+          lineJoin: 'round',
+        },
+      ).addTo(waypointGroup);
+      waypointLegPolyline.bringToBack();
+    }
   }
 
   function removeWaypointById(id) {
@@ -50,6 +110,7 @@
       return true;
     });
     saveWaypointsLs();
+    refreshWaypointNumerationAndLegs();
     renderWaypointList();
   }
 
@@ -89,11 +150,14 @@
     var list = document.getElementById('nav-wp-list');
     if (!list) return;
     list.innerHTML = '';
-    waypoints.forEach(function (wp) {
+    waypoints.forEach(function (wp, wi) {
       var row = document.createElement('div');
       row.className = 'nav-wp-row';
       row.innerHTML =
-        '<span class="nav-wp-name">' +
+        '<span class="nav-wp-idx" title="Ordem na rota">' +
+        '#' +
+        (wi + 1) +
+        '</span><span class="nav-wp-name">' +
         global.__sisnagEscapeHtml(wp.name) +
         '</span>' +
         '<button type="button" data-act="focus" data-id="' +
@@ -114,14 +178,15 @@
       };
       row.querySelector('[data-act="edit"]').onclick = function () {
         openWaypointEditor(wp);
-        saveWaypointsLs();
-        renderWaypointList();
       };
       row.querySelector('[data-act="del"]').onclick = function () {
         removeWaypointById(wp.id);
       };
       list.appendChild(row);
     });
+    if (!waypoints.length) {
+      list.innerHTML = '<p style="margin:8px 0 0;color:#64748b;font-size:11px;">Nenhum waypoint. Toque «Novo waypoint» ou importe GPX.</p>';
+    }
   }
 
   function addWaypointMarker(lat, lng, name, fixedId) {
@@ -133,20 +198,16 @@
       id = waypointIdSeq++;
       while (waypoints.some(function (w) { return w.id === id; })) id = waypointIdSeq++;
     }
-    var icon = L.divIcon({
-      className: 'sisnag-wp-icon',
-      html: '<div class="sisnag-wp-pin">⚓</div>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 28],
-    });
-    var m = L.marker([lat, lng], { draggable: true, icon: icon });
+    var provisory = Math.max(1, waypoints.length + 1);
+    var m = L.marker([lat, lng], { draggable: true, icon: buildWaypointNumberIcon(provisory) });
     var wp = { id: id, lat: lat, lng: lng, name: name || 'Waypoint', marker: m };
-    m.bindPopup(escapePopup(wp));
+    m.bindPopup(escapePopup(wp, provisory));
     m.on('dragend', function () {
       var ll = m.getLatLng();
       wp.lat = ll.lat;
       wp.lng = ll.lng;
       saveWaypointsLs();
+      refreshWaypointNumerationAndLegs();
       renderWaypointList();
     });
     m.on('click', function () {
@@ -154,6 +215,7 @@
     });
     m.addTo(waypointGroup);
     waypoints.push(wp);
+    refreshWaypointNumerationAndLegs();
     renderWaypointList();
     saveWaypointsLs();
     return wp;
@@ -347,6 +409,7 @@
     }
 
     loadWaypointsLs();
+    refreshWaypointNumerationAndLegs();
     renderWaypointList();
   };
 

@@ -9,6 +9,7 @@ import { extractVesselsFromMarineTrafficScreenshot } from './src/services/marine
 import { sensorSocketHandler } from './src/sockets/sensorSocketHandler.js';
 import { createGrokClient, grokChatModel, grokVisionModel } from './src/lib/grokClient.js';
 import { createCorsOriginCallback, corsStartupLogLine } from './src/http/corsConfig.js';
+import { buildSealagomBriefForChat } from './src/services/sealagom.service.js';
 
 dotenv.config();
 
@@ -130,6 +131,16 @@ app.post('/api/chart-targets/from-screenshot', upload.single('screenshot'), asyn
   }
 });
 
+function optionalCoord(body, ...keys) {
+  for (const k of keys) {
+    const v = body[k];
+    if (v === undefined || v === null || v === '') continue;
+    const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'));
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
 app.post('/api/chat', async (req, res) => {
   const message = req.body?.message;
   if (!message || typeof message !== 'string') {
@@ -145,17 +156,47 @@ app.post('/api/chat', async (req, res) => {
   }
 
   try {
+    const nearLat =
+      optionalCoord(req.body ?? {}, 'lat', 'near_lat', 'latitude') ??
+      optionalCoord(req.body?.near ?? {}, 'lat', 'latitude');
+    const nearLng =
+      optionalCoord(req.body ?? {}, 'lng', 'lon', 'near_lng', 'longitude') ??
+      optionalCoord(req.body?.near ?? {}, 'lng', 'lon', 'longitude');
+
+    const radiusParsed = Number(String(req.body?.radius_nm ?? '').replace(',', '.'));
+    const radiusNm = Number.isFinite(radiusParsed)
+      ? Math.min(500, Math.max(25, radiusParsed))
+      : Math.min(500, Math.max(40, Number(process.env.SEALAGOM_NEAR_NM) || 180));
+
+    let sealagomBrief = '';
+    let sealagomMeta = 'no_token';
+    try {
+      const sg = await buildSealagomBriefForChat(nearLat, nearLng, radiusNm);
+      sealagomBrief = (sg.brief || '').trim();
+      sealagomMeta = sg.meta || 'no_token';
+    } catch (e) {
+      console.warn('[Sealag.om] ingestão opcional falhou:', e.message || e);
+    }
+
+    const systemCore =
+      'Você é o copiloto náutico SISNAG (rebocador): navegação, COLREGs, meteorologia e mar (incluir meteorologia marinha quando relevante a perigos, mar agitado, restrições e navegação), motores Caterpillar/MTU quando aplicável. ' +
+      'Responda em português do Brasil, com prudência; avise quando faltar dados. ' +
+      'Se existir um bloco [SeaLag.om…], trate-o apenas como rumo rápido: o comando deve confirmar sempre com MMSI/coordenador NAVAREA/porto e fontes oficiais.';
+
+    let systemFull = systemCore;
+    if (sealagomMeta === 'no_token') {
+      systemFull += `\n\n(SeaLag.om desativado neste servidor: defina a variável de ambiente SEALAGOM_API_TOKEN para ingestão automática de avisos NAVAREA e costeiros.)`;
+    } else if (sealagomBrief) {
+      systemFull += `\n\n${sealagomBrief}`;
+    }
+
     const completion = await grok.chat.completions.create({
       model: grokChatModel(),
       messages: [
-        {
-          role: 'system',
-          content:
-            'Você é o copiloto náutico SISNAG (rebocador): navegação, COLREGs, meteorologia básica, motores Caterpillar/MTU quando relevante. Português do Brasil, respostas curtas e prudentes.',
-        },
+        { role: 'system', content: systemFull },
         { role: 'user', content: message },
       ],
-      max_tokens: 700,
+      max_tokens: 900,
     });
     return res.json({ reply: completion.choices[0]?.message?.content || '' });
   } catch (e) {
@@ -198,5 +239,10 @@ httpServer.once('listening', () => {
 httpServer.listen(PORT, HOST, () => {
   console.log(`🚢 SISNAG — http://${HOST}:${PORT}`);
   console.log(corsStartupLogLine());
+  console.log(
+    process.env.SEALAGOM_API_TOKEN
+      ? '⚓ SeaLag.om: ativo → NAVAREA + costeiros no copiloto (Pro/Full: coords/keywords ⇒ filtro por proximidade; Basic: só resumo texto)'
+      : '⚓ SeaLag.om: opcional — defina SEALAGOM_API_TOKEN para contextualizar avisos no chat',
+  );
   console.log('📱 Grok + Marine Traffic incorporado (captura → /api/chart-targets/from-screenshot)');
 });

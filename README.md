@@ -44,6 +44,11 @@ Documentação xAI: [docs.x.ai](https://docs.x.ai/docs/tutorial).
 | `GROK_API_BASE_URL` | Não | Predefinido `https://api.x.ai/v1`. |
 | `GROK_CHAT_MODEL` | Não | Predefinido `grok-4.3`. Veja [modelos xAI](https://docs.x.ai/docs/models). |
 | `GROK_VISION_MODEL` | Não | Predefinido `grok-4.3` (multimodal). |
+| `SEALAGOM_API_TOKEN` | Opcional | [SeaLag.om](https://www.sealagom.com/api/docs/) — avisos **NAVAREA** e **costeiros** no prompt do `/api/chat` (perigos, restrições, meteonáutica relacionada aos avisos). O token só no Railway. **Plano Pro/Full:** a API devolve `decimal_coordinates`, formatos geo adicionais e `keywords`; o SISNAG usa isso para o **filtro por proximidade** (GPS ou centro do mapa + `SEALAGOM_NEAR_NM`). No plano **Basic** as coordenadas costumam vir `null`, e o servidor cai para um **resumo textual** mais largo dos avisos. |
+| `SEALAGOM_API_BASE_URL` | Não | Predefinido `https://sealagom.com/api/v1`. |
+| `SEALAGOM_CACHE_SECONDS` | Não | Cache em memória (30–900 s); predefinido `300`. |
+| `SEALAGOM_NEAR_NM` | Não | Raio em milhas náuticas para filtrar mensagens com coordenadas; predefinido `180`. |
+| `SEALAGOM_MAX_MESSAGES_IN_CHAT` | Não | Limite de avisos no contexto Grok (predef. `18`). |
 | `HOST` | Não | Predefinido `0.0.0.0` (correcto atrás do proxy da Railway). |
 
 O servidor usa `trust proxy` e escuta em `0.0.0.0` para o proxy da Railway. Socket.io usa a mesma lógica de origens que `CORS_ORIGIN` (lista ou `*`).

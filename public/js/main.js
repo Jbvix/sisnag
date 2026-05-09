@@ -2,9 +2,26 @@
 (function main() {
   const map = L.map('map').setView([-12.97, -38.48], 9);
 
+  /** Leaflet com contentor 100vh pode medir 0×0 no 1.º frame — força relayout para carregar tiles. */
+  function sisnagMapResize() {
+    try {
+      map.invalidateSize(false);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   if (typeof window.initSisnagLayersMenu === 'function') {
     window.initSisnagLayersMenu(map);
   }
+
+  requestAnimationFrame(sisnagMapResize);
+  window.addEventListener('load', sisnagMapResize);
+  window.addEventListener('pageshow', function (ev) {
+    if (ev.persisted) sisnagMapResize();
+  });
+  window.setTimeout(sisnagMapResize, 350);
+  window.setTimeout(sisnagMapResize, 1600);
 
   if (typeof window.initNavigationOverlay === 'function') {
     window.initNavigationOverlay(map);

@@ -31,10 +31,23 @@
    * @param {L.Map} map
    */
   global.initSisnagLayersMenu = function initSisnagLayersMenu(map) {
-    var osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // CDN oficial OSM — subdomínios {s}.tile.* estão depreciados e podem falhar (mapa só cinza).
+    var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
     });
+
+    /** Fallback rápido se OSM falhar rede / bloqueios (tiles cinzentos sem imagem). */
+    var rasterStreetsEsriFallback = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
+      {
+        maxZoom: 23,
+        attribution: '&copy; Esri, Garmin, GeoTechnologies',
+      },
+    );
+
+    var osmTileFails = 0;
 
     var satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
@@ -70,8 +83,7 @@
       attribution: '&copy; OpenSeaMap depth',
     });
 
-    osm.addTo(map);
-    var activeBase = osm;
+    var overlayState = { seamark: false, depth: false };
 
     function switchBase(layer) {
       if (layer === activeBase) return;
@@ -82,7 +94,16 @@
       if (overlayState.depth && map.hasLayer(depth)) depth.bringToFront();
     }
 
-    var overlayState = { seamark: false, depth: false };
+    osm.addTo(map);
+    var activeBase = osm;
+
+    osm.on('tileerror', function () {
+      osmTileFails++;
+      if (activeBase !== osm || !map.hasLayer(osm)) return;
+      if (osmTileFails >= 4) {
+        switchBase(rasterStreetsEsriFallback);
+      }
+    });
 
     function toggleOverlay(layer, key, on) {
       if (on) {
@@ -103,7 +124,9 @@
     var root = document.createElement('div');
     root.className = 'sisnag-layers-root';
     root.innerHTML = `
-      <button type="button" class="sisnag-hb" id="sisnag-hb-open" aria-expanded="false" aria-controls="sisnag-layers-drawer" title="Camadas">☰</button>
+      <button type="button" class="sisnag-dock-btn sisnag-dock-btn--layers" id="sisnag-hb-open" aria-expanded="false" aria-controls="sisnag-layers-drawer" title="Camadas">
+        <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
       <div class="sisnag-layers-backdrop" id="sisnag-layers-backdrop" hidden></div>
       <aside class="sisnag-layers-drawer" id="sisnag-layers-drawer" hidden aria-label="Camadas do mapa">
         <div class="sisnag-layers-head">
@@ -140,6 +163,12 @@
     `;
     document.body.appendChild(root);
 
+    var btnOpenMounted = root.querySelector('#sisnag-hb-open');
+    var dockLeft = document.getElementById('sisnag-dock-left');
+    if (dockLeft && btnOpenMounted) {
+      dockLeft.insertBefore(btnOpenMounted, dockLeft.firstChild);
+    }
+
     var windyPanel = document.getElementById('windy-panel');
     var windyIframe = document.getElementById('windy-iframe');
     var btnWindyClose = document.getElementById('windy-close');
@@ -163,7 +192,7 @@
 
     var drawer = root.querySelector('#sisnag-layers-drawer');
     var backdrop = root.querySelector('#sisnag-layers-backdrop');
-    var btnOpen = root.querySelector('#sisnag-hb-open');
+    var btnOpen = btnOpenMounted || root.querySelector('#sisnag-hb-open');
     var btnClose = root.querySelector('#sisnag-hb-close');
 
     function openDrawer() {

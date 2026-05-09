@@ -9,19 +9,124 @@
   <link rel="manifest" href="/manifest.json" />
   <style>
     html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; overflow: hidden; }
-    #map { position: fixed; inset: 0; z-index: 100; height: 100vh; width: 100vw; }
-
     :root {
       --sisnag-windy-opacity: 0.82;
       --sisnag-mt-opacity: 0.82;
+      /** Altura do chat no rodapé — mapa e overlays respeitam para não ficar por baixo. */
+      --sisnag-footer-chat-h: clamp(200px, 36vh, 320px);
     }
 
-    /* Embeds em ecrã completo: transparência no painel vé o mapa através. */
+    html, body {
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    #map {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: var(--sisnag-footer-chat-h);
+      z-index: 100;
+      width: 100%;
+    }
+
+    /* Docas laterais — ícones SVG, mobile first */
+    .sisnag-dock {
+      position: fixed;
+      top: calc(10px + env(safe-area-inset-top));
+      max-height: calc(100vh - var(--sisnag-footer-chat-h) - env(safe-area-inset-bottom) - 24px);
+      z-index: 920;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+      pointer-events: none;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .sisnag-dock > * { pointer-events: auto; }
+    .sisnag-dock--left { left: max(8px, env(safe-area-inset-left)); }
+    .sisnag-dock--right { right: max(8px, env(safe-area-inset-right)); }
+
+    .sisnag-dock-btn {
+      flex-shrink: 0;
+      width: 46px;
+      height: 46px;
+      border: none;
+      border-radius: 14px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+    }
+    .sisnag-dock-btn.secondary { background: rgba(59, 130, 246, 0.95); color: #030712; }
+    .sisnag-dock-btn:active { transform: scale(0.96); }
+
+    .sisnag-ico { display: block; flex-shrink: 0; }
+
+    .sisnag-dock-caption {
+      flex-shrink: 0;
+      font-size: 9px;
+      line-height: 1.2;
+      color: #cbd5e1;
+      text-align: center;
+      max-width: 56px;
+      text-shadow: 0 1px 3px rgba(0,0,0,.8);
+      margin-top: 2px;
+      white-space: pre-line;
+      word-break: break-all;
+    }
+
+    /** Sem doca esquerda no DOM, o botão camadas fica no canto (compat). */
+    .sisnag-layers-root > .sisnag-dock-btn {
+      position: fixed;
+      top: calc(10px + env(safe-area-inset-top));
+      left: max(8px, env(safe-area-inset-left));
+      z-index: 921;
+    }
+
+    /** Estado / telemetria — compacto, não sobrepõe doca esquerda */
+    #sisnag-status-chip {
+      position: fixed;
+      left: calc(62px + env(safe-area-inset-left));
+      top: calc(10px + env(safe-area-inset-top));
+      z-index: 915;
+      max-width: min(calc(100vw - 128px), 280px);
+      background: rgba(15, 23, 42, 0.9);
+      color: #f1f5f9;
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      line-height: 1.38;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(51, 65, 85, 0.5);
+    }
+    #sisnag-status-chip .sisnag-status-lines { opacity: .95; }
+    #sisnag-status-chip .sisnag-status-targets {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.35;
+    }
+
+    /* Embeds — mesma margem inferior que o mapa; em fullscreen cobre o rodapé. */
     #embed-stack {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: var(--sisnag-footer-chat-h);
       z-index: 640;
       pointer-events: none;
+    }
+    /** Com painel aberto ocupa ecrã inteiro (por cima do chat) */
+    #embed-stack:has(#mt-panel.is-open),
+    #embed-stack:has(#windy-panel.is-open) {
+      bottom: 0;
+      z-index: 960;
     }
     #embed-stack.has-open-pointer { pointer-events: auto; }
     #embed-stack.embed-click-through { pointer-events: none; }
@@ -37,8 +142,6 @@
       color: #e2e8f0;
     }
     #windy-panel.is-open, #mt-panel.is-open { display: flex; }
-    #windy-panel.is-open { z-index: 641; }
-    #mt-panel.is-open { z-index: 642; }
 
     /* Transparência só na área do mapa externo — barra de ferramentas fica legível */
     #windy-panel.is-open .embed-shell { opacity: var(--sisnag-windy-opacity); }
@@ -87,7 +190,10 @@
     /* Derrota, waypoints e embarcação por cima de tudo (mapa só vectorial, sincronizado). */
     #map-vector-overlay {
       position: fixed;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: var(--sisnag-footer-chat-h);
       z-index: 800;
       pointer-events: none;
     }
@@ -121,56 +227,37 @@
       color: white;
       text-shadow: 0 1px 2px #000;
     }
-    .sisnag-wp-pin {
-      width: 26px;
-      height: 26px;
+    /** Waypoints numerados (círculo no mapa vectorial). */
+    .leaflet-div-icon.sisnag-wp-icon {
+      border: none;
+      background: transparent;
+    }
+    .sisnag-wp-num {
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
-      background: linear-gradient(#fbbf24,#d97706);
+      background: linear-gradient(160deg, #fde68a 0%, #d97706 100%);
       border: 2px solid #fff;
-      box-shadow: 0 2px 8px rgba(0,0,0,.45);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.42);
       display: flex;
       align-items: center;
       justify-content: center;
       font-size: 13px;
+      font-weight: 800;
+      color: #422006;
+      line-height: 1;
+      font-family: system-ui, sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
-
-    /* Painel navegação (botões). */
-    .nav-controls {
-      position: fixed;
-      top: auto;
-      left: 10px;
-      bottom: calc(52vh + env(safe-area-inset-bottom));
-      max-width: min(92vw, 220px);
-      z-index: 920;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    @media (max-height: 600px) {
-      .nav-controls { bottom: 120px; }
-    }
-    .nav-controls button {
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 12px;
-      text-align: left;
-      background: rgba(17,24,39,0.92);
-      color: #f9fafb;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.25);
-    }
-    .nav-controls button.secondary { background: rgba(59,130,246,0.95); color: #020617; }
 
     #nav-wp-sheet {
       position: fixed;
       left: 10px;
-      bottom: 10px;
+      bottom: calc(var(--sisnag-footer-chat-h) + env(safe-area-inset-bottom) + 10px);
       width: min(280px, 92vw);
-      max-height: 38vh;
+      max-height: min(38vh, calc(100vh - var(--sisnag-footer-chat-h) - 80px));
       overflow: auto;
-      z-index: 925;
+      z-index: 935;
       background: rgba(15,23,42,0.95);
       color: #e2e8f0;
       border-radius: 12px;
@@ -183,12 +270,18 @@
     #nav-wp-sheet .nav-wp-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
     .nav-wp-row {
       display: grid;
-      grid-template-columns: 1fr auto auto auto;
+      grid-template-columns: auto 1fr auto auto auto;
       gap: 6px;
       align-items: center;
       padding: 6px 0;
       border-bottom: 1px solid #334155;
       font-size: 12px;
+    }
+    .nav-wp-idx {
+      font-weight: 800;
+      color: #fbbf24;
+      font-size: 11px;
+      min-width: 1.75rem;
     }
     .nav-wp-row button { padding: 4px 8px; border-radius: 6px; border: none; cursor: pointer; font-size: 11px; }
     #fuel-badge {
@@ -198,27 +291,10 @@
       line-height: 1.35;
     }
 
-    .sisnag-hb {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-      z-index: 930;
-      width: 48px;
-      height: 48px;
-      border: none;
-      border-radius: 12px;
-      background: rgba(15, 23, 42, 0.92);
-      color: #f8fafc;
-      font-size: 22px;
-      line-height: 1;
-      cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
-    }
-    .sisnag-hb:hover { background: #1e293b; }
     .sisnag-layers-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 905;
+      z-index: 948;
       background: rgba(0,0,0,0.45);
     }
     .sisnag-layers-drawer {
@@ -228,7 +304,7 @@
       width: min(320px, 90vw);
       max-height: 100vh;
       overflow: auto;
-      z-index: 910;
+      z-index: 949;
       background: #0f172a;
       color: #e2e8f0;
       box-shadow: -8px 0 28px rgba(0,0,0,0.4);
@@ -284,6 +360,82 @@
       color: #fff;
     }
     .sisnag-panel-btn:hover { background: #2563eb; }
+
+    /* Chat — rodapé em largura total */
+    #chat.sisnag-chat-footer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--sisnag-footer-chat-h);
+      max-height: calc(100vh - env(safe-area-inset-top));
+      z-index: 930;
+      display: flex;
+      flex-direction: column;
+      background: rgba(248, 250, 252, 0.98);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid #e2e8f0;
+      border-radius: 16px 16px 0 0;
+      box-shadow: 0 -10px 40px rgba(15, 23, 42, 0.12);
+      padding-bottom: env(safe-area-inset-bottom);
+      box-sizing: border-box;
+    }
+    .sisnag-chat-footer .sisnag-chat-head {
+      flex-shrink: 0;
+      padding: 10px 14px;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 700;
+      font-size: 14px;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      letter-spacing: -0.02em;
+    }
+    .sisnag-chat-footer .sisnag-chat-head::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.25);
+    }
+    .sisnag-chat-footer .sisnag-chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 10px 14px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .sisnag-chat-footer .sisnag-chat-messages .sisnag-chat-line {
+      margin-bottom: 8px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #334155;
+    }
+    .sisnag-chat-footer .sisnag-chat-form {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+      padding: 10px 14px 12px;
+      border-top: 1px solid #e2e8f0;
+      background: rgba(255, 255, 255, 0.94);
+      align-items: center;
+    }
+    .sisnag-chat-footer .sisnag-chat-input {
+      flex: 1;
+      min-width: 0;
+      padding: 10px 12px !important;
+      border-radius: 12px !important;
+      border: 1px solid #cbd5e1 !important;
+      font-size: 15px;
+    }
+    .sisnag-chat-footer .sisnag-chat-send {
+      flex-shrink: 0;
+      padding: 10px 16px !important;
+      border-radius: 12px !important;
+      font-weight: 600;
+    }
   </style>
 </head>
 <body>
@@ -317,35 +469,45 @@
 
   <div id="map-vector-overlay"></div>
 
-  <div style="position:fixed; top:10px; left:10px; background:rgba(0,0,0,0.82); color:white; padding:12px 14px; border-radius:10px; font-size:14px; max-width:min(92vw, 360px); z-index:900;">
-    <div>🌐 Starlink: <span id="status">Conectado</span></div>
-    <div id="sensors-status">📍 GPS: aguardando…</div>
-    <div id="targets-status" style="margin-top:8px; font-size:12px; opacity:0.95; line-height:1.35;">Alvos: —</div>
-    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
-      <button type="button" id="btn-mt-embed" class="secondary" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; background:#0ea5e9; color:#0f172a;">
-        🗺️ Marine Traffic
-      </button>
-      <button type="button" id="btn-screenshot" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; background:#f1f5f9; color:#0f172a;">
-        📸 MCPS/MTU
-      </button>
-    </div>
+  <!-- Ícone camadas é acrescentado aqui pelo scripts/layersMenu.js -->
+  <div id="sisnag-dock-left" class="sisnag-dock sisnag-dock--left" aria-label="Ferramentas do mapa">
+    <button type="button" id="nav-import-gpx" class="sisnag-dock-btn secondary" title="Importar GPX" aria-label="Importar GPX">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+    </button>
+    <button type="button" id="nav-new-wp" class="sisnag-dock-btn" title="Novo waypoint — toque no mapa" aria-label="Novo waypoint">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 22s8-4.86 8-11a8 8 0 1 0-16 0c0 6.14 8 11 8 11Zm0-11h0"/><circle cx="12" cy="11" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+    </button>
+    <button type="button" id="nav-toggle-wp" class="sisnag-dock-btn" title="Lista / editar waypoints" aria-label="Lista de waypoints">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 6h11M9 12h11M9 18h11"/><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="18" r="1.5" fill="currentColor"/></svg>
+    </button>
+    <button type="button" id="nav-fuel" class="sisnag-dock-btn secondary" title="Consumo combustível (L/h)" aria-label="Consumo L/h">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 11h1a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-1M4 4h10v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm4 16V4M10 4v16"/><path fill="none" stroke="currentColor" stroke-width="2" d="M14 6h2a2 2 0 0 1 2 2v4"/></svg>
+    </button>
+    <div id="fuel-badge" class="sisnag-dock-caption"></div>
   </div>
 
-  <div class="nav-controls">
-    <button type="button" id="nav-import-gpx" class="secondary">📂 Importar GPX</button>
-    <button type="button" id="nav-new-wp">⚓ Novo waypoint (toque no mapa)</button>
-    <button type="button" id="nav-toggle-wp">📍 Lista / editar waypoints</button>
-    <button type="button" id="nav-fuel" class="secondary">⛽ Consumo L/h</button>
-    <div id="fuel-badge"></div>
+  <div id="sisnag-dock-right" class="sisnag-dock sisnag-dock--right" aria-label="Painéis externos">
+    <button type="button" id="btn-mt-embed" class="sisnag-dock-btn secondary" title="Marine Traffic (embed)" aria-label="Marine Traffic">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 17h4l2 3h6l2-3h4"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8 14v-2l2-8h4l2 8v2"/><circle cx="12" cy="17" r="1.5" fill="currentColor"/></svg>
+    </button>
+    <button type="button" id="btn-screenshot" class="sisnag-dock-btn" title="Captura displays MCPS/MTU" aria-label="Captura MCPS/MTU">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="7" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10.5" cy="13.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 10h3a2 2 0 0 1 2 2v7h-3"/></svg>
+    </button>
+  </div>
+
+  <div id="sisnag-status-chip">
+    <div class="sisnag-status-lines"><strong>Starlink</strong>: <span id="status">Conectado</span></div>
+    <div class="sisnag-status-lines" id="sensors-status">GPS: aguardando…</div>
+    <div id="targets-status" class="sisnag-status-targets">Alvos: —</div>
   </div>
 
   <div id="nav-wp-sheet">
     <div class="nav-wp-head"><strong>Waypoints</strong><button type="button" id="nav-wp-close" style="background:#334155;border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;">✕</button></div>
-    <p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">Arraste os marcadores no mapa superior. Botão editar corrige nome e coordenadas.</p>
+    <p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">Ordem #1…#n = linha tracejada de seguimento no mapa. Arraste marcadores ou edite por coordenadas.</p>
     <div id="nav-wp-list"></div>
   </div>
 
-  <div id="chat" style="position:fixed; bottom:10px; right:10px; width:min(96vw, 380px); height:min(52vh, 520px); background:rgba(255,255,255,0.96); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; z-index:880;"></div>
+  <div id="chat" class="sisnag-chat-footer" hidden></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>

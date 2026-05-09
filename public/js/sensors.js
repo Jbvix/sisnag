@@ -32,6 +32,8 @@
           if (typeof window.__sisnagSetVesselPosition === 'function') {
             window.__sisnagSetVesselPosition(data.lat, data.lon, data.sog);
           }
+          /** GPS mais recente — enviado ao /api/chat para filtrar avisos SeaLag.om por proximidade. */
+          global.__sisnagLastKnownGps = { lat: data.lat, lng: data.lon, ts: Date.now() };
         },
         (err) => gpsErrorNote(err),
         { enableHighAccuracy: true, maximumAge: 5000 },
