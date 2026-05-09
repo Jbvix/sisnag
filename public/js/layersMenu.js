@@ -152,7 +152,7 @@
           <label class="sisnag-row"><input type="radio" name="sisnag-base" value="ocean" /> Fundo oceânico (Esri)</label>
 
           <p class="sisnag-layers-hint">Sobreposições</p>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" /> OpenSeaMap — balizagem</label>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" /> OpenSeaMap — balizagem (ligado ao abrir)</label>
           <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-depth" /> OpenSeaMap — batimetria</label>
 
           <p class="sisnag-layers-hint">Painéis (embed)</p>
@@ -164,9 +164,10 @@
     document.body.appendChild(root);
 
     var btnOpenMounted = root.querySelector('#sisnag-hb-open');
-    var dockLeft = document.getElementById('sisnag-dock-left');
-    if (dockLeft && btnOpenMounted) {
-      dockLeft.insertBefore(btnOpenMounted, dockLeft.firstChild);
+    var dockRight = document.getElementById('sisnag-dock-right');
+    /** Botão camadas à direita (mapa / overlays OpenSeaMap); navegação fica à esquerda. */
+    if (dockRight && btnOpenMounted) {
+      dockRight.insertBefore(btnOpenMounted, dockRight.firstChild);
     }
 
     var windyPanel = document.getElementById('windy-panel');
@@ -221,12 +222,17 @@
       });
     });
 
-    root.querySelector('#sisnag-osm-seamark').addEventListener('change', function (e) {
+    var chkSeamark = root.querySelector('#sisnag-osm-seamark');
+    chkSeamark.addEventListener('change', function (e) {
       toggleOverlay(seamark, 'seamark', e.target.checked);
     });
     root.querySelector('#sisnag-osm-depth').addEventListener('change', function (e) {
       toggleOverlay(depth, 'depth', e.target.checked);
     });
+
+    /** Ver carta náutica com balizagem sem abrir o menu (OpenSeaMap por cima do OSM). */
+    chkSeamark.checked = true;
+    toggleOverlay(seamark, 'seamark', true);
 
     root.querySelector('#sisnag-open-windy').addEventListener('click', function () {
       closeDrawer();

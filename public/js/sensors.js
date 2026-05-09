@@ -1,17 +1,25 @@
 /* global window, document, navigator */
 (function attachSensors(global) {
+  function setGpsIcon(kind, title) {
+    var wrap = document.getElementById('sisnag-icon-gps');
+    if (!wrap) return;
+    wrap.classList.remove('sisnag-signal--ok', 'sisnag-signal--warn', 'sisnag-signal--bad', 'sisnag-signal--idle');
+    wrap.classList.add('sisnag-signal--' + (kind || 'idle'));
+    if (title) wrap.title = title;
+  }
+
   global.startSensors = function startSensors(socket) {
-    const statusEl = document.getElementById('sensors-status');
     function gpsErrorNote(err) {
-      if (!statusEl) return;
       var code = err && err.code;
       if (code === 1) {
-        statusEl.textContent =
-          '📍 GPS bloqueado: reponha permissão em “Informações da página” (ícone 🔒 ao lado da URL no Chrome).';
+        setGpsIcon(
+          'bad',
+          'GPS bloqueado — repor permissão em Informações da página (ícone ao lado do URL). Marine Traffic: usar captura → Grok.',
+        );
       } else if (code === 2 || code === 3) {
-        statusEl.textContent = '📍 GPS temporariamente indisponível ou sem fix (tente outra vez ao ar livre).';
+        setGpsIcon('warn', 'GPS sem fix ou impreciso — tente ao ar livre.');
       } else {
-        statusEl.textContent = '📍 GPS: permissão ou erro (' + String(code != null ? code : '') + ').';
+        setGpsIcon('warn', 'GPS: erro ou permissão (' + String(code != null ? code : '') + ').');
       }
     }
 
@@ -26,9 +34,18 @@
             accuracy: pos.coords.accuracy,
           };
           socket.emit('sensor_update', { type: 'gps', data });
-          if (statusEl) {
-            statusEl.textContent = `📍 ${data.lat.toFixed(4)}, ${data.lon.toFixed(4)} | ${data.sog} kn`;
-          }
+          setGpsIcon(
+            'ok',
+            'GPS OK · ' +
+              data.lat.toFixed(4) +
+              ', ' +
+              data.lon.toFixed(4) +
+              ' · SOG ' +
+              data.sog +
+              ' kn · ±' +
+              (data.accuracy != null ? Math.round(data.accuracy) : '?') +
+              ' m',
+          );
           if (typeof window.__sisnagSetVesselPosition === 'function') {
             window.__sisnagSetVesselPosition(data.lat, data.lon, data.sog);
           }
@@ -38,8 +55,8 @@
         (err) => gpsErrorNote(err),
         { enableHighAccuracy: true, maximumAge: 5000 },
       );
-    } else if (statusEl) {
-      statusEl.textContent = '📍 GPS indisponível neste dispositivo';
+    } else {
+      setGpsIcon('bad', 'Geolocalização não disponível neste dispositivo.');
     }
 
     window.addEventListener('deviceorientation', (e) => {

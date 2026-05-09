@@ -44,4 +44,18 @@
   if (typeof window.initChat === 'function') {
     window.initChat(socket);
   }
+
+  function sisnagStarlinkUiOnline() {
+    var el = document.getElementById('sisnag-icon-starlink');
+    if (!el) return;
+    var on = typeof navigator !== 'undefined' && navigator.onLine !== false;
+    el.classList.toggle('sisnag-signal--ok', on);
+    el.classList.toggle('sisnag-signal--bad', !on);
+    el.title = on
+      ? 'Starlink / dados: browser online (ligações por satélite não são medidas pela app).'
+      : 'Sem ligação de rede no dispositivo.';
+  }
+  sisnagStarlinkUiOnline();
+  window.addEventListener('online', sisnagStarlinkUiOnline);
+  window.addEventListener('offline', sisnagStarlinkUiOnline);
 })();
