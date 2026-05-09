@@ -31,55 +31,68 @@
    * @param {L.Map} map
    */
   global.initSisnagLayersMenu = function initSisnagLayersMenu(map) {
-    // CDN oficial OSM — subdomínios {s}.tile.* estão depreciados e podem falhar (mapa só cinza).
-    var osm = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    });
+    /** detectRetina=true em mobile pede tiles @+1 zoom e vários CDNs devolvem vazio (ecrã cinza). */
+    /** Não usar crossOrigin nos tiles: OSM/Esri/OpenSeaMap muitas vezes não enviam ACAO → img bloqueada. */
+    var tCommon = { detectRetina: false };
+
+    // CDN oficial OSM — https://operations.osmfoundation.org/policies/tiles/
+    var osm = L.tileLayer(
+      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+      Object.assign({}, tCommon, {
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+      }),
+    );
 
     /** Fallback rápido se OSM falhar rede / bloqueios (tiles cinzentos sem imagem). */
     var rasterStreetsEsriFallback = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-      {
+      Object.assign({}, tCommon, {
         maxZoom: 23,
         attribution: '&copy; Esri, Garmin, GeoTechnologies',
-      },
+      }),
     );
 
     var osmTileFails = 0;
 
     var satellite = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      {
+      Object.assign({}, tCommon, {
         maxZoom: 19,
         attribution: '&copy; Esri, Maxar, Earthstar Geographics',
-      },
+      }),
     );
 
-    var topo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
-      maxZoom: 17,
-      attribution:
-        'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://opentopomap.org/">OpenTopoMap</a>',
-    });
+    /** Host único recomendado (subdomínios {s}.tile.* falham em parte das redes). */
+    var topo = L.tileLayer(
+      'https://tile.opentopomap.org/{z}/{x}/{y}.png',
+      Object.assign({}, tCommon, {
+        maxZoom: 17,
+        attribution:
+          'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://opentopomap.org/">OpenTopoMap</a>',
+      }),
+    );
 
     var ocean = L.tileLayer(
       'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-      {
+      Object.assign({}, tCommon, {
         maxZoom: 16,
         attribution: '&copy; Esri, Garmin, GEBCO, NOAA NGDC',
-      },
+      }),
     );
 
     var seamark = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
       maxZoom: 18,
       opacity: 1,
+      detectRetina: false,
       attribution: '&copy; <a href="https://www.openseamap.org/">OpenSeaMap</a>',
     });
 
     var depth = L.tileLayer('https://tiles.openseamap.org/depth/{z}/{x}/{y}.png', {
       maxZoom: 18,
       opacity: 0.85,
+      detectRetina: false,
       attribution: '&copy; OpenSeaMap depth',
     });
 
@@ -92,6 +105,13 @@
       activeBase = layer;
       if (overlayState.seamark && map.hasLayer(seamark)) seamark.bringToFront();
       if (overlayState.depth && map.hasLayer(depth)) depth.bringToFront();
+      setTimeout(function () {
+        try {
+          map.invalidateSize(false);
+        } catch (e) {
+          /* ignore */
+        }
+      }, 50);
     }
 
     osm.addTo(map);
@@ -100,7 +120,7 @@
     osm.on('tileerror', function () {
       osmTileFails++;
       if (activeBase !== osm || !map.hasLayer(osm)) return;
-      if (osmTileFails >= 4) {
+      if (osmTileFails >= 2) {
         switchBase(rasterStreetsEsriFallback);
       }
     });
@@ -272,5 +292,12 @@
       }
     };
 
+    setTimeout(function () {
+      try {
+        map.invalidateSize(false);
+      } catch (e) {
+        /* ignore */
+      }
+    }, 120);
   };
 })(window);
