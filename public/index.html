@@ -24,6 +24,125 @@
       box-shadow: 0 8px 32px rgba(0,0,0,0.45);
     }
     #mt-panel.is-open { display: flex; }
+
+    #windy-panel {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: min(58vh, 520px);
+      z-index: 710;
+      background: #0c4a6e;
+      color: #e0f2fe;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    #windy-panel.is-open { display: flex; }
+    #windy-panel .windy-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #0369a1;
+      font-size: 13px;
+    }
+    #windy-panel .windy-toolbar button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: #075985;
+      color: #f0f9ff;
+    }
+    #windy-iframe { flex: 1; width: 100%; border: 0; min-height: 200px; background: #082f49; }
+
+    .sisnag-hb {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 800;
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, 0.92);
+      color: #f8fafc;
+      font-size: 22px;
+      line-height: 1;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    }
+    .sisnag-hb:hover { background: #1e293b; }
+    .sisnag-layers-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 780;
+      background: rgba(0,0,0,0.45);
+    }
+    .sisnag-layers-drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      width: min(300px, 88vw);
+      max-height: 100vh;
+      overflow: auto;
+      z-index: 790;
+      background: #0f172a;
+      color: #e2e8f0;
+      box-shadow: -8px 0 28px rgba(0,0,0,0.4);
+      padding: 0 0 20px;
+    }
+    .sisnag-layers-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-bottom: 1px solid #334155;
+      font-size: 16px;
+    }
+    .sisnag-hb-close {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 20px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .sisnag-layers-body { padding: 12px 16px; }
+    .sisnag-layers-hint {
+      margin: 14px 0 8px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #64748b;
+    }
+    .sisnag-layers-hint:first-child { margin-top: 0; }
+    .sisnag-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 8px 0;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .sisnag-row input { flex-shrink: 0; }
+    .sisnag-panel-btn {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 14px;
+      background: #1d4ed8;
+      color: #fff;
+    }
+    .sisnag-panel-btn:hover { background: #2563eb; }
     #mt-panel .mt-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -60,6 +179,15 @@
     <iframe id="mt-iframe" title="Marine Traffic AIS" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
   </div>
 
+  <div id="windy-panel" aria-label="Windy meteorologia">
+    <div class="windy-toolbar">
+      <span style="font-weight:700;">Windy</span>
+      <button type="button" id="windy-close" title="Fechar">✕ Fechar</button>
+      <button type="button" id="windy-sync-map" title="Centro = mapa principal">↻ Centro = mapa</button>
+    </div>
+    <iframe id="windy-iframe" title="Windy map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+  </div>
+
   <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.82); color:white; padding:12px 14px; border-radius:10px; font-size:14px; max-width: min(92vw, 380px); z-index:600;">
     <div>🌐 Starlink: <span id="status">Conectado</span></div>
     <div id="sensors-status">📍 GPS: aguardando…</div>
@@ -84,6 +212,7 @@
   <script src="/js/sensors.js"></script>
   <script src="/js/chat.js"></script>
   <script src="/js/camera-upload.js"></script>
+  <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>
   <script src="/js/main.js"></script>
   <script>

@@ -40,12 +40,17 @@
     const btnCapture = document.getElementById('mt-capture-grok');
     const btnSocketRefresh = document.getElementById('mt-socket-refresh');
 
+    function openPanel() {
+      if (!panel) return;
+      panel.classList.add('is-open');
+      syncIframeFromMap();
+      setStatus('Marine Traffic incorporado: use captura de ecrã do mapa e “Captura → Grok”.');
+    }
+
+    global.openMarineTrafficPanel = openPanel;
+
     if (btnOpen && panel) {
-      btnOpen.addEventListener('click', () => {
-        panel.classList.add('is-open');
-        syncIframeFromMap();
-        setStatus('Marine Traffic incorporado: use captura de ecrã do mapa e “Captura → Grok”.');
-      });
+      btnOpen.addEventListener('click', openPanel);
     }
     if (btnClose && panel) {
       btnClose.addEventListener('click', () => {
