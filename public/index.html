@@ -543,21 +543,17 @@
     <button type="button" id="nav-toggle-wp" class="sisnag-dock-btn" title="Lista / editar waypoints" aria-label="Lista de waypoints">
       <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M9 6h11M9 12h11M9 18h11"/><circle cx="5" cy="6" r="1.5" fill="currentColor"/><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="5" cy="18" r="1.5" fill="currentColor"/></svg>
     </button>
+    <button type="button" id="btn-screenshot" class="sisnag-dock-btn secondary" title="Captura displays MCPS/MTU" aria-label="Captura MCPS/MTU">
+      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="7" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10.5" cy="13.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 10h3a2 2 0 0 1 2 2v7h-3"/></svg>
+    </button>
     <button type="button" id="nav-fuel" class="sisnag-dock-btn secondary" title="Consumo combustível (L/h)" aria-label="Consumo L/h">
       <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 11h1a2 2 0 0 1 2 2v5a1 1 0 0 1-1 1h-1M4 4h10v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4Zm4 16V4M10 4v16"/><path fill="none" stroke="currentColor" stroke-width="2" d="M14 6h2a2 2 0 0 1 2 2v4"/></svg>
     </button>
     <div id="fuel-badge" class="sisnag-dock-caption"></div>
   </div>
 
-  <!-- Camadas (☰) inserido no topo pela scripts/layersMenu.js -->
-  <div id="sisnag-dock-right" class="sisnag-dock sisnag-dock--right" aria-label="Mapa, Marine Traffic e captura">
-    <button type="button" id="btn-mt-embed" class="sisnag-dock-btn secondary" title="Marine Traffic (embed)" aria-label="Marine Traffic">
-      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 17h4l2 3h6l2-3h4"/><path fill="none" stroke="currentColor" stroke-width="2" d="M8 14v-2l2-8h4l2 8v2"/><circle cx="12" cy="17" r="1.5" fill="currentColor"/></svg>
-    </button>
-    <button type="button" id="btn-screenshot" class="sisnag-dock-btn" title="Captura displays MCPS/MTU" aria-label="Captura MCPS/MTU">
-      <svg class="sisnag-ico" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="4" y="7" width="13" height="13" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="10.5" cy="13.5" r="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M17 10h3a2 2 0 0 1 2 2v7h-3"/></svg>
-    </button>
-  </div>
+  <!-- Camadas (☰) inserido no topo pela scripts/layersMenu.js — Marine Traffic só pelo menu Camadas -->
+  <div id="sisnag-dock-right" class="sisnag-dock sisnag-dock--right" aria-label="Camadas do mapa"></div>
 
   <div id="sisnag-status-strip">
     <div class="sisnag-status-icons-row">
