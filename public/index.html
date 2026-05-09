@@ -10,27 +10,81 @@
   <style>
     html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; }
     #map { height: 100vh; width: 100vw; }
+    #mt-panel {
+      display: none;
+      position: fixed;
+      left: 0;
+      right: 0;
+      top: 0;
+      height: min(58vh, 520px);
+      z-index: 700;
+      background: #0f172a;
+      color: #e2e8f0;
+      flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.45);
+    }
+    #mt-panel.is-open { display: flex; }
+    #mt-panel .mt-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid #334155;
+      font-size: 13px;
+    }
+    #mt-panel .mt-toolbar button {
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      background: #1e293b;
+      color: #f8fafc;
+    }
+    #mt-panel .mt-toolbar button:hover { background: #334155; }
+    #mt-iframe { flex: 1; width: 100%; border: 0; min-height: 200px; background: #020617; }
   </style>
 </head>
 <body>
   <div id="map"></div>
 
-  <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.82); color:white; padding:12px 14px; border-radius:10px; font-size:14px; max-width: min(92vw, 360px);">
-    <div>🌐 Starlink: <span id="status">Conectado</span></div>
-    <div id="sensors-status">📍 GPS: aguardando…</div>
-    <button type="button" id="btn-screenshot" style="margin-top:10px; padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600;">
-      📸 Analisar display MCPS/MTU
-    </button>
+  <div id="mt-panel" aria-label="Marine Traffic incorporado">
+    <div class="mt-toolbar">
+      <span style="font-weight:700;">Marine Traffic (embed)</span>
+      <button type="button" id="mt-close" title="Fechar">✕ Fechar</button>
+      <button type="button" id="mt-sync-map" title="Centrar embed no mapa OSM">↻ Centro = mapa OSM</button>
+      <button type="button" id="mt-capture-grok">📸 Captura → Grok alvos</button>
+      <button type="button" id="mt-socket-refresh">🔔 Avisar refresh (socket)</button>
+    </div>
+    <iframe id="mt-iframe" title="Marine Traffic AIS" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
   </div>
 
-  <div id="chat" style="position:absolute; bottom:10px; right:10px; width:min(96vw, 380px); height:min(52vh, 520px); background:rgba(255,255,255,0.96); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column;"></div>
+  <div style="position:absolute; top:10px; left:10px; background:rgba(0,0,0,0.82); color:white; padding:12px 14px; border-radius:10px; font-size:14px; max-width: min(92vw, 380px); z-index:600;">
+    <div>🌐 Starlink: <span id="status">Conectado</span></div>
+    <div id="sensors-status">📍 GPS: aguardando…</div>
+    <div id="targets-status" style="margin-top:8px; font-size:12px; opacity:0.95; line-height:1.35;">Alvos: —</div>
+    <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+      <button type="button" id="btn-mt-embed" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600; background:#0ea5e9; color:#0f172a;">
+        🗺️ Marine Traffic
+      </button>
+      <button type="button" id="btn-screenshot" style="padding:8px 12px; border-radius:8px; border:none; cursor:pointer; font-weight:600;">
+        📸 MCPS/MTU
+      </button>
+    </div>
+  </div>
+
+  <div id="chat" style="position:absolute; bottom:10px; right:10px; width:min(96vw, 380px); height:min(52vh, 520px); background:rgba(255,255,255,0.96); border-radius:12px; box-shadow:0 8px 30px rgba(0,0,0,0.35); display:flex; flex-direction:column; z-index:500;"></div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
   <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+  <script src="/js/apiOrigin.js"></script>
+  <script src="/js/config.public.js"></script>
   <script src="/js/sensors.js"></script>
   <script src="/js/chat.js"></script>
   <script src="/js/camera-upload.js"></script>
+  <script src="/js/marineTrafficEmbed.js"></script>
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('btn-screenshot').addEventListener('click', function () {

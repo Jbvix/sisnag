@@ -82,7 +82,7 @@
       input.value = '';
       addChatMessage('Você', escapeHtml(text));
       try {
-        const res = await fetch('/api/chat', {
+        const res = await fetch(window.__sisnagApiUrl('/api/chat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message: text }),

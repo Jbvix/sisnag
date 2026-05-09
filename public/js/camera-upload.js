@@ -17,7 +17,7 @@
       }
 
       try {
-        const res = await fetch('/analyze-screenshot', {
+        const res = await fetch(window.__sisnagApiUrl('/analyze-screenshot'), {
           method: 'POST',
           body: formData,
         });

@@ -6,13 +6,12 @@
     attribution: '&copy; OpenStreetMap',
   }).addTo(map);
 
-  const socket = io();
+  const apiOrigin = typeof window.__sisnagApiOrigin === 'function' ? window.__sisnagApiOrigin() : '';
+  const socket = apiOrigin ? io(apiOrigin) : io();
 
-  socket.on('vessels', (payload) => {
-    if (payload && payload.message && window.console) {
-      console.info('[SISNAG]', payload.message);
-    }
-  });
+  if (typeof window.initMarineTrafficEmbed === 'function') {
+    window.initMarineTrafficEmbed(map, socket);
+  }
 
   if (typeof window.startSensors === 'function') {
     window.startSensors(socket);

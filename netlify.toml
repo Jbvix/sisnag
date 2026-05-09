@@ -1,4 +1,12 @@
-# Site estático: a mesma pasta `public` servida pelo Express em produção no Railway.
+# Site estático em `public`. O backend (Grok, Socket.io) fica no Railway.
+# Em Site settings → Environment variables no Netlify, defina pelo menos SISNAG_API_ORIGIN.
+#
+# O projeto não usa LangChain (só Grok via pacote `openai`). Se o Git ainda tiver
+# `langchain` antigo no package.json, isto evita ERESOLVE no install do Netlify até
+# fazer merge da versão sem langchain.
+[build.environment]
+  NPM_CONFIG_LEGACY_PEER_DEPS = "true"
+
 [build]
   publish = "public"
-  command = "exit 0"
+  command = "npm run build:netlify"

@@ -4,6 +4,7 @@ import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { chartTargetsService } from './src/services/chartTargets.service.js';
+import { extractVesselsFromMarineTrafficScreenshot } from './src/services/marineTrafficGrok.service.js';
 import { sensorSocketHandler } from './src/sockets/sensorSocketHandler.js';
 import { createGrokClient, grokChatModel, grokVisionModel } from './src/lib/grokClient.js';
 
@@ -12,6 +13,16 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: '*' } });
+
+/** Browser no Netlify chama API no Railway (origem diferente). */
+app.use((req, res, next) => {
+  const allow = process.env.CORS_ORIGIN || '*';
+  res.setHeader('Access-Control-Allow-Origin', allow);
+  res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  next();
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -67,6 +78,43 @@ app.post('/analyze-screenshot', upload.single('screenshot'), async (req, res) =>
   }
 });
 
+/** Captura do mapa Marine Traffic incorporado → Grok Vision → alvos na carta (Socket `vessels`). */
+app.post('/api/chart-targets/from-screenshot', upload.single('screenshot'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Nenhum arquivo (campo screenshot).' });
+    }
+
+    const { ships, grokRaw, error } = await extractVesselsFromMarineTrafficScreenshot(
+      req.file.buffer,
+      req.file.mimetype,
+    );
+
+    let message = '';
+    if (error === 'missing_grok_key') {
+      message = 'Servidor sem GROK_API_KEY / XAI_API_KEY — não foi possível analisar a captura.';
+    } else if (ships.length) {
+      message = `${ships.length} alvo(s) com coordenadas extraídos do embed (Grok).`;
+    } else {
+      message =
+        'Grok não devolveu coordenadas válidas. Tente captura mais nítida do mapa Marine Traffic incorporado.';
+    }
+
+    const payload = {
+      source: 'grok_marine_traffic_embed',
+      ships,
+      ts: Date.now(),
+      message,
+      grokPreview: typeof grokRaw === 'string' ? grokRaw.slice(0, 1500) : '',
+    };
+    io.emit('vessels', payload);
+    return res.json(payload);
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: String(e.message || e), ships: [] });
+  }
+});
+
 app.post('/api/chat', async (req, res) => {
   const message = req.body?.message;
   if (!message || typeof message !== 'string') {
@@ -104,7 +152,7 @@ app.post('/api/chat', async (req, res) => {
 io.on('connection', (socket) => {
   console.log('Cliente mobile conectado (Starlink)');
 
-  chartTargetsService.init(socket);
+  chartTargetsService.init(io, socket);
   sensorSocketHandler(socket);
 
   socket.on('disconnect', () => console.log('Cliente desconectado'));
@@ -113,5 +161,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`🚢 SISNAG — http://localhost:${PORT}`);
-  console.log('📱 Grok (xAI) + sensores + visão em displays (GROK_API_KEY / XAI_API_KEY)');
+  console.log('📱 Grok + Marine Traffic incorporado (captura → /api/chart-targets/from-screenshot)');
 });

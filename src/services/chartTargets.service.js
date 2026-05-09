@@ -1,17 +1,28 @@
 /**
- * Alvos na carta (Marine Traffic / Grok Vision, etc.).
- * Sem AISSTREAM: apenas ganchos Socket.io até integrar a fonte real.
+ * Alvos na carta sem API Marine Traffic: mapa incorporado (embed) no cliente
+ * + Grok Vision em capturas enviadas a POST /api/chart-targets/from-screenshot.
  */
 export const chartTargetsService = {
-  init(socket) {
+  /**
+   * @param {import('socket.io').Server} io
+   * @param {import('socket.io').Socket} socket
+   */
+  init(io, socket) {
     socket.emit('vessels', {
-      source: 'chart_stub',
+      source: 'embed',
       ships: [],
-      message: 'Alvos na carta: configure Marine Traffic + Grok Vision (sem AISSTREAM).',
+      message:
+        'Marine Traffic incorporado na app: abra o painel, faça captura de ecrã do mapa e use “Captura → Grok” para extrair alvos.',
     });
 
     socket.on('chart_targets_refresh', () => {
-      socket.emit('vessels', { source: 'chart_stub', ships: [], ts: Date.now() });
+      io.emit('vessels', {
+        source: 'embed_refresh',
+        ships: [],
+        ts: Date.now(),
+        message:
+          'Pedido de atualização: abra o Marine Traffic incorporado, capture o mapa e envie para análise Grok (ou reponha marcadores no mapa OSM).',
+      });
     });
   },
 };
