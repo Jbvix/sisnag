@@ -133,7 +133,7 @@
 
     addChatMessage(
       'IA',
-      'Copiloto SISNAG pronto. Tenho acesso aos waypoints (#1 origem → último destino), GPS/SOG em tempo real e ETAs calculadas a cada pergunta. Ex.: «Que horas chego ao waypoint 3?» ou «Quando passamos por Salvador?»',
+      'Copiloto SISNAG pronto: waypoints, ETAs, portos com filial e faróis da costa brasileira (características de luz) perto da rota. Ex.: «Que farol é este Fl W 5s?» ou «ETA ao waypoint 3».',
     );
   };
 })(window);

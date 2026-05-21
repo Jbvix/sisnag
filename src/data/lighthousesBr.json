@@ -1,0 +1,795 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-21",
+  "source": "SISNAG curadoria costeira (DHN/OSM); confirmar com carta náutica oficial",
+  "count": 78,
+  "lighthouses": [
+    {
+      "name": "Farol de Pedreira",
+      "lat": 0.12,
+      "lng": -51.05,
+      "region": "Norte",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Santana",
+      "lat": -0.04,
+      "lng": -51.18,
+      "region": "Norte",
+      "character": "Oc",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Calheira",
+      "lat": -0.58,
+      "lng": -47.34,
+      "region": "Norte",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 10
+    },
+    {
+      "name": "Farol de Vila do Conde",
+      "lat": -1.55,
+      "lng": -48.75,
+      "region": "Norte",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de São Marcos",
+      "lat": -2.52,
+      "lng": -44.3,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol do Trapiche (São Luís)",
+      "lat": -2.5,
+      "lng": -44.28,
+      "region": "Nordeste",
+      "character": "Oc",
+      "colour": "R",
+      "period": 6,
+      "rangeNm": 8
+    },
+    {
+      "name": "Farol de Currais",
+      "lat": -2.9,
+      "lng": -41.78,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Parnaíba",
+      "lat": -2.9,
+      "lng": -41.76,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 11
+    },
+    {
+      "name": "Farol de Tutóia",
+      "lat": -2.76,
+      "lng": -42.28,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol do Mucuripe",
+      "lat": -3.718,
+      "lng": -38.476,
+      "region": "Nordeste",
+      "character": "Oc",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16,
+      "note": "Fortaleza"
+    },
+    {
+      "name": "Farol de Tabua",
+      "lat": -3.68,
+      "lng": -38.58,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 10
+    },
+    {
+      "name": "Farol de Pecém",
+      "lat": -3.54,
+      "lng": -38.82,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Jericoacoara",
+      "lat": -2.79,
+      "lng": -40.51,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Natal",
+      "lat": -5.75,
+      "lng": -35.2,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol de Cabo Branco (João Pessoa)",
+      "lat": -7.15,
+      "lng": -34.79,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 18
+    },
+    {
+      "name": "Farol de Lucena",
+      "lat": -7.52,
+      "lng": -34.88,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Recife",
+      "lat": -8.05,
+      "lng": -34.87,
+      "region": "Nordeste",
+      "character": "Oc",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Olinda",
+      "lat": -8.01,
+      "lng": -34.85,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 10
+    },
+    {
+      "name": "Farol de Suape",
+      "lat": -8.39,
+      "lng": -34.96,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol de Cabo de Santo Agostinho",
+      "lat": -8.35,
+      "lng": -34.95,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Tamandaré",
+      "lat": -8.76,
+      "lng": -35.1,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Coroa do Avião",
+      "lat": -8.2,
+      "lng": -34.97,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 8
+    },
+    {
+      "name": "Farol de Porto de Galinhas",
+      "lat": -8.51,
+      "lng": -35,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 10
+    },
+    {
+      "name": "Farol de Aracaju",
+      "lat": -10.9,
+      "lng": -37.05,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Preguiças (Baía de Todos os Santos)",
+      "lat": -13.15,
+      "lng": -38.65,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16
+    },
+    {
+      "name": "Farol da Barra (Salvador)",
+      "lat": -13.0107,
+      "lng": -38.5317,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 16,
+      "note": "Entrada Baía de Todos os Santos"
+    },
+    {
+      "name": "Farol de Itapuã",
+      "lat": -12.95,
+      "lng": -38.39,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Morro de São Paulo",
+      "lat": -13.38,
+      "lng": -38.92,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Coroa Vermelha",
+      "lat": -16,
+      "lng": -39.04,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Porto Seguro",
+      "lat": -16.39,
+      "lng": -39.08,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Abrolhos",
+      "lat": -17.961,
+      "lng": -38.68,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 25,
+      "note": "Arquipélago — perigo"
+    },
+    {
+      "name": "Farol de Belmonte",
+      "lat": -15.87,
+      "lng": -38.88,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 11
+    },
+    {
+      "name": "Farol de Ilhéus",
+      "lat": -14.79,
+      "lng": -39.05,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Santa Cruz (ES)",
+      "lat": -19.92,
+      "lng": -40.15,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol de Santa Luzia",
+      "lat": -20.02,
+      "lng": -40.12,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Vitória (Escalvada)",
+      "lat": -20.32,
+      "lng": -40.29,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Guarapari",
+      "lat": -20.65,
+      "lng": -40.38,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Cabo Frio",
+      "lat": -22.88,
+      "lng": -42.02,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 18
+    },
+    {
+      "name": "Farol de Búzios",
+      "lat": -22.75,
+      "lng": -41.88,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Arraial do Cabo",
+      "lat": -22.97,
+      "lng": -42.02,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol da Ilha Rasa",
+      "lat": -23.04,
+      "lng": -43.72,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16,
+      "note": "Aproximação Baía de Guanabara"
+    },
+    {
+      "name": "Farol de Ponta do Castelo (Guanabara)",
+      "lat": -22.9,
+      "lng": -43.13,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Copacabana",
+      "lat": -22.97,
+      "lng": -43.18,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Santa Cruz (RJ)",
+      "lat": -22.92,
+      "lng": -43.88,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol de Sepetiba",
+      "lat": -22.93,
+      "lng": -43.72,
+      "region": "Sudeste",
+      "character": "Oc",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Itaguaí",
+      "lat": -22.85,
+      "lng": -43.82,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Angra dos Reis (Ilha dos Meros)",
+      "lat": -23.01,
+      "lng": -44.32,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16
+    },
+    {
+      "name": "Farol de Ilha Grande (Praia do Amor)",
+      "lat": -23.12,
+      "lng": -44.17,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 11
+    },
+    {
+      "name": "Farol de Paraty",
+      "lat": -23.22,
+      "lng": -44.72,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Santos (Ponta da Fortaleza)",
+      "lat": -23.96,
+      "lng": -46.33,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 18
+    },
+    {
+      "name": "Farol de São Sebastião",
+      "lat": -23.81,
+      "lng": -45.41,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Cananéia",
+      "lat": -25.01,
+      "lng": -47.93,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Paranaguá",
+      "lat": -25.52,
+      "lng": -48.53,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16
+    },
+    {
+      "name": "Farol de Guaratuba",
+      "lat": -25.68,
+      "lng": -48.51,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de São Francisco do Sul",
+      "lat": -26.24,
+      "lng": -48.63,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Itajaí (Cabeço Santa Teresa)",
+      "lat": -26.9,
+      "lng": -48.66,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16
+    },
+    {
+      "name": "Farol de Navegantes",
+      "lat": -26.89,
+      "lng": -48.65,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Galheta (SC)",
+      "lat": -27.6,
+      "lng": -48.48,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Santa Marta (SC)",
+      "lat": -28.6,
+      "lng": -48.8,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 18,
+      "note": "Cabo de Santa Marta"
+    },
+    {
+      "name": "Farol de Imbituba",
+      "lat": -28.23,
+      "lng": -48.65,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol de Laguna",
+      "lat": -28.48,
+      "lng": -48.78,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Rio Grande",
+      "lat": -32.03,
+      "lng": -52.1,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 20
+    },
+    {
+      "name": "Farol de São José do Norte",
+      "lat": -32.02,
+      "lng": -52.04,
+      "region": "Sul",
+      "character": "Oc",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Tramandaí",
+      "lat": -29.99,
+      "lng": -50.13,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Torres",
+      "lat": -29.34,
+      "lng": -49.73,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Cabo de Santa Maria (RS)",
+      "lat": -33.72,
+      "lng": -53.38,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 22,
+      "note": "Entrada Lagoa dos Patos"
+    },
+    {
+      "name": "Farol de Chuí",
+      "lat": -33.68,
+      "lng": -53.45,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 15
+    },
+    {
+      "name": "Farol de Macapá",
+      "lat": 0.04,
+      "lng": -51.05,
+      "region": "Norte",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 11
+    },
+    {
+      "name": "Farol de Belém (Docas)",
+      "lat": -1.45,
+      "lng": -48.5,
+      "region": "Norte",
+      "character": "Oc",
+      "colour": "W",
+      "period": 6,
+      "rangeNm": 10
+    },
+    {
+      "name": "Farol de Mosqueiro",
+      "lat": -1.12,
+      "lng": -48.47,
+      "region": "Norte",
+      "character": "Fl",
+      "colour": "W",
+      "period": 5,
+      "rangeNm": 9
+    },
+    {
+      "name": "Farol de Alcântara",
+      "lat": -2.39,
+      "lng": -44.42,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Barra Grande (PI)",
+      "lat": -2.75,
+      "lng": -42.28,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 10
+    },
+    {
+      "name": "Farol de Maceió",
+      "lat": -9.67,
+      "lng": -35.73,
+      "region": "Nordeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 14
+    },
+    {
+      "name": "Farol de Cabo Frio (Ilha do Cabo Frio)",
+      "lat": -22.88,
+      "lng": -41.98,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 16
+    },
+    {
+      "name": "Farol de Ilhabela",
+      "lat": -23.78,
+      "lng": -45.35,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 12
+    },
+    {
+      "name": "Farol de Ubatuba",
+      "lat": -23.37,
+      "lng": -44.9,
+      "region": "Sudeste",
+      "character": "Fl",
+      "colour": "W",
+      "period": 10,
+      "rangeNm": 13
+    },
+    {
+      "name": "Farol de Florianópolis (Hercílio Luz)",
+      "lat": -27.59,
+      "lng": -48.56,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "R",
+      "period": 2,
+      "rangeNm": 8,
+      "note": "Referência urbana — verificar carta"
+    },
+    {
+      "name": "Farol de Palhoça",
+      "lat": -27.64,
+      "lng": -48.51,
+      "region": "Sul",
+      "character": "Fl",
+      "colour": "W",
+      "period": 8,
+      "rangeNm": 10
+    }
+  ]
+}

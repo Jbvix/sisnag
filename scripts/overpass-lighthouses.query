@@ -1,0 +1,6 @@
+[out:json][timeout:55];
+(
+  node["seamark:type"="lighthouse"](-33.8,-54,-2.2,-32);
+  way["seamark:type"="lighthouse"](-33.8,-54,-2.2,-32);
+);
+out center tags;

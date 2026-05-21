@@ -11,6 +11,8 @@ import { createGrokClient, grokChatModel, grokVisionModel } from './src/lib/grok
 import { createCorsOriginCallback, corsStartupLogLine } from './src/http/corsConfig.js';
 import { buildSealagomBriefForChat } from './src/services/sealagom.service.js';
 import { buildNavigationBrief } from './src/lib/navigationBrief.js';
+import { buildCompanyPortsBrief } from './src/lib/companyPortsBrief.js';
+import { buildLighthousesBrief } from './src/lib/lighthousesBrief.js';
 
 dotenv.config();
 
@@ -186,6 +188,8 @@ app.post('/api/chat', async (req, res) => {
       'Responda em português do Brasil, com prudência; avise quando faltar dados. ' +
       'Se existir um bloco [Contexto de navegação SISNAG], use-o como fonte principal para origem/destino (waypoints #1 e último), pernas, distâncias em milhas náuticas (NM) e ETAs — os horários já foram calculados no servidor com SOG do GPS (se recente) ou velocidade planeada. ' +
       'Para perguntas «em tempo real» com GPS activo, indique que a ETA depende do SOG actual e pode mudar. ' +
+      'Se existir [Portos com filial da empresa — Brasil], use essa lista (Norte, Nordeste, Sudeste, Sul) e a associação por proximidade a cada waypoint/GPS para falar de operação local e porto filial. ' +
+      'Se existir [Faróis — costa brasileira], use coordenadas e características (Fl/Oc, cor, período, alcance) como referência de navegação costeira, cruzando com waypoints e GPS. ' +
       'Se existir um bloco [SeaLag.om…], trate-o apenas como rumo rápido: o comando deve confirmar sempre com MMSI/coordenador NAVAREA/porto e fontes oficiais.';
 
     let systemFull = systemCore;
@@ -200,6 +204,29 @@ app.post('/api/chat', async (req, res) => {
     } catch (e) {
       console.warn('[nav] contexto de rota falhou:', e.message || e);
     }
+
+    let portsMeta = 'catalog';
+    try {
+      const portsBlock = buildCompanyPortsBrief(req.body?.navigation);
+      portsMeta = portsBlock.meta || 'catalog';
+      if (portsBlock.brief) {
+        systemFull += `\n\n${portsBlock.brief}`;
+      }
+    } catch (e) {
+      console.warn('[portos] contexto filiais falhou:', e.message || e);
+    }
+
+    let lighthousesMeta = 'catalog';
+    try {
+      const lhBlock = buildLighthousesBrief(req.body?.navigation);
+      lighthousesMeta = lhBlock.meta || 'catalog';
+      if (lhBlock.brief) {
+        systemFull += `\n\n${lhBlock.brief}`;
+      }
+    } catch (e) {
+      console.warn('[faróis] contexto costeiro falhou:', e.message || e);
+    }
+
     if (sealagomMeta === 'no_token') {
       systemFull += `\n\n(SeaLag.om desativado neste servidor: defina a variável de ambiente SEALAGOM_API_TOKEN para ingestão automática de avisos NAVAREA e costeiros.)`;
     } else if (sealagomBrief) {
@@ -216,7 +243,12 @@ app.post('/api/chat', async (req, res) => {
     });
     return res.json({
       reply: completion.choices[0]?.message?.content || '',
-      meta: { sealagom: sealagomMeta, navigation: navMeta },
+      meta: {
+        sealagom: sealagomMeta,
+        navigation: navMeta,
+        companyPorts: portsMeta,
+        lighthouses: lighthousesMeta,
+      },
     });
   } catch (e) {
     console.error(e);
