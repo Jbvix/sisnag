@@ -43,13 +43,24 @@
     window.initMarineTrafficEmbed(map, socket);
   }
 
+  if (typeof window.initOpenSeaMapEmbed === 'function') {
+    window.initOpenSeaMapEmbed(map);
+  }
+
   if (typeof window.startSensors === 'function') {
     window.startSensors(socket);
   }
   if (typeof window.initChat === 'function') {
     window.initChat(socket);
   }
+  /** Chat deixa de estar hidden — relayout do rodapé; tiles precisam de novo tamanho. */
   setTimeout(sisnagMapResize, 80);
+  setTimeout(sisnagMapResize, 400);
+  setTimeout(sisnagMapResize, 1200);
+
+  map.whenReady(function () {
+    sisnagMapResize();
+  });
 
   function sisnagStarlinkUiOnline() {
     var el = document.getElementById('sisnag-icon-starlink');

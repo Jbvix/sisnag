@@ -4,6 +4,9 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>SISNAG — Rebocador IA</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="alternate icon" href="/favicon.svg" />
+  <meta name="theme-color" content="#0b1220" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
   <link rel="manifest" href="/manifest.json" />
@@ -12,6 +15,7 @@
     :root {
       --sisnag-windy-opacity: 0.82;
       --sisnag-mt-opacity: 0.82;
+      --sisnag-osm-opacity: 0.92;
       /** Altura do chat no rodapé — mapa e overlays respeitam para não ficar por baixo. */
       --sisnag-footer-chat-h: clamp(200px, 36vh, 320px);
       /** Mapa base acima do stack de embeds (transparente) para os tiles pintarem; vector e UI acima. */
@@ -39,10 +43,21 @@
       bottom: var(--sisnag-footer-chat-h);
       z-index: var(--sisnag-z-map);
       width: 100%;
+      height: calc(100vh - var(--sisnag-footer-chat-h));
+      height: calc(100dvh - var(--sisnag-footer-chat-h));
     }
+    /** Leaflet põe .leaflet-container no próprio #map (não num filho) — altura 100% obrigatória. */
+    #map.leaflet-container,
     #map .leaflet-container {
+      width: 100% !important;
+      height: 100% !important;
+      min-height: 120px;
       background: #cbd5e1;
       outline: none;
+    }
+    #map .leaflet-tile-pane img.leaflet-tile {
+      opacity: 1 !important;
+      visibility: visible !important;
     }
 
     /* Docas laterais — ícones SVG, mobile first */
@@ -188,28 +203,35 @@
     }
     /** Com painel aberto ocupa ecrã inteiro (por cima do chat) */
     #embed-stack:has(#mt-panel.is-open),
-    #embed-stack:has(#windy-panel.is-open) {
+    #embed-stack:has(#windy-panel.is-open),
+    #embed-stack:has(#osm-panel.is-open) {
       bottom: 0;
       z-index: var(--sisnag-z-embed-fullscreen);
     }
-    #embed-stack.has-open-pointer { pointer-events: auto; }
+    /** Sem painéis embed abertos, o stack não interfere no mapa base. */
+    #embed-stack:not(:has(#windy-panel.is-open)):not(:has(#mt-panel.is-open)):not(:has(#osm-panel.is-open)) {
+      visibility: hidden;
+      pointer-events: none;
+    }
+    #embed-stack.has-open-pointer { pointer-events: auto; visibility: visible; }
     #embed-stack.embed-click-through { pointer-events: none; }
     #embed-stack.embed-click-through .embed-toolbar { pointer-events: auto; }
     #embed-stack:not(.embed-click-through) .embed-shell iframe { pointer-events: auto; }
     #embed-stack.embed-click-through .embed-shell iframe { pointer-events: none !important; }
 
-    #windy-panel, #mt-panel {
+    #windy-panel, #mt-panel, #osm-panel {
       display: none;
       flex-direction: column;
       position: absolute;
       inset: 0;
       color: #e2e8f0;
     }
-    #windy-panel.is-open, #mt-panel.is-open { display: flex; }
+    #windy-panel.is-open, #mt-panel.is-open, #osm-panel.is-open { display: flex; }
 
     /* Transparência só na área do mapa externo — barra de ferramentas fica legível */
     #windy-panel.is-open .embed-shell { opacity: var(--sisnag-windy-opacity); }
     #mt-panel.is-open .embed-shell { opacity: var(--sisnag-mt-opacity); }
+    #osm-panel.is-open .embed-shell { opacity: var(--sisnag-osm-opacity); }
 
     .embed-toolbar {
       flex-shrink: 0;
@@ -225,6 +247,7 @@
       z-index: 2;
     }
     #windy-panel .embed-toolbar { border-bottom-color: #0369a1; background: rgba(12, 74, 110, 0.95); color: #e0f2fe; }
+    #osm-panel .embed-toolbar { border-bottom-color: #0d9488; background: rgba(15, 118, 110, 0.95); color: #ccfbf1; }
 
     .embed-toolbar button {
       padding: 8px 12px;
@@ -236,6 +259,7 @@
       color: #f8fafc;
     }
     #windy-panel .embed-toolbar button { background: #075985; color: #f0f9ff; }
+    #osm-panel .embed-toolbar button { background: #0f766e; color: #f0fdfa; }
 
     .embed-shell {
       flex: 1;
@@ -260,8 +284,14 @@
       bottom: var(--sisnag-footer-chat-h);
       z-index: var(--sisnag-z-vector);
       pointer-events: none;
+      width: 100%;
+      height: calc(100vh - var(--sisnag-footer-chat-h));
+      height: calc(100dvh - var(--sisnag-footer-chat-h));
     }
+    #map-vector-overlay.leaflet-container,
     #map-vector-overlay .leaflet-container {
+      width: 100% !important;
+      height: 100% !important;
       background: transparent !important;
     }
 
@@ -529,6 +559,18 @@
         <iframe id="mt-iframe" title="Marine Traffic AIS" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       </div>
     </div>
+
+    <div id="osm-panel" class="embed-panel" aria-label="OpenSeaMap carta náutica">
+      <div class="embed-toolbar osm-toolbar">
+        <span style="font-weight:700;">OpenSeaMap — ecrã completo</span>
+        <button type="button" id="osm-close" title="Fechar">✕ Fechar</button>
+        <button type="button" id="osm-sync-map" title="Centro">↻ Centro = mapa</button>
+        <button type="button" id="osm-open-external" title="Separador">↗ Separador</button>
+      </div>
+      <div class="embed-shell">
+        <iframe id="osm-iframe" title="OpenSeaMap" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
   </div>
 
   <div id="map-vector-overlay"></div>
@@ -608,6 +650,7 @@
   <script src="/js/navigationOverlay.js"></script>
   <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>
+  <script src="/js/openseamapEmbed.js"></script>
   <script src="/js/main.js"></script>
   <script>
     document.getElementById('btn-screenshot').addEventListener('click', function () {

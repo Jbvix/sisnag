@@ -13,8 +13,12 @@
     var stack = document.getElementById('embed-stack');
     var windy = document.getElementById('windy-panel');
     var mt = document.getElementById('mt-panel');
+    var osm = document.getElementById('osm-panel');
     if (!stack) return;
-    var open = (windy && windy.classList.contains('is-open')) || (mt && mt.classList.contains('is-open'));
+    var open =
+      (windy && windy.classList.contains('is-open')) ||
+      (mt && mt.classList.contains('is-open')) ||
+      (osm && osm.classList.contains('is-open'));
     if (open) stack.classList.add('has-open-pointer');
     else stack.classList.remove('has-open-pointer');
   }
@@ -31,72 +35,98 @@
    * @param {L.Map} map
    */
   global.initSisnagLayersMenu = function initSisnagLayersMenu(map) {
-    /** detectRetina=true em mobile pede tiles @+1 zoom e vários CDNs devolvem vazio (ecrã cinza). */
-    /** Não usar crossOrigin nos tiles: OSM/Esri/OpenSeaMap muitas vezes não enviam ACAO → img bloqueada. */
     var tCommon = { detectRetina: false };
 
-    // CDN oficial OSM — https://operations.osmfoundation.org/policies/tiles/
-    var osm = L.tileLayer(
-      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-      Object.assign({}, tCommon, {
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-      }),
-    );
+    function setMapTileStatus(msg) {
+      var el = document.getElementById('targets-status');
+      if (el) el.textContent = msg || 'Alvos: —';
+    }
 
-    /** Fallback rápido se OSM falhar rede / bloqueios (tiles cinzentos sem imagem). */
-    var rasterStreetsEsriFallback = L.tileLayer(
+    function makeBase(id, url, opts) {
+      return L.tileLayer(url, Object.assign({}, tCommon, opts, { className: 'sisnag-base-' + id }));
+    }
+
+    /** Ordem de arranque: CDNs que costumam funcionar em rede móvel / Starlink. */
+    var baseCarto = makeBase(
+      'carto',
+      'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+      {
+        subdomains: 'abcd',
+        maxZoom: 20,
+        attribution: '&copy; OSM &copy; <a href="https://carto.com/">CARTO</a>',
+      },
+    );
+    var baseEsriStreet = makeBase(
+      'esri-street',
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}',
-      Object.assign({}, tCommon, {
-        maxZoom: 23,
-        attribution: '&copy; Esri, Garmin, GeoTechnologies',
-      }),
+      { maxZoom: 23, attribution: '&copy; Esri' },
     );
+    var osm = makeBase('osm', 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    });
 
-    var osmTileFails = 0;
+    var baseFallbackChain = [baseCarto, baseEsriStreet, osm];
+    var baseFailCount = 0;
+    var fallbackIndex = 0;
 
-    var satellite = L.tileLayer(
+    var satellite = makeBase(
+      'satellite',
       'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-      Object.assign({}, tCommon, {
-        maxZoom: 19,
-        attribution: '&copy; Esri, Maxar, Earthstar Geographics',
-      }),
+      { maxZoom: 19, attribution: '&copy; Esri, Maxar' },
     );
 
-    /** Host único recomendado (subdomínios {s}.tile.* falham em parte das redes). */
-    var topo = L.tileLayer(
-      'https://tile.opentopomap.org/{z}/{x}/{y}.png',
-      Object.assign({}, tCommon, {
-        maxZoom: 17,
-        attribution:
-          'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, <a href="https://opentopomap.org/">OpenTopoMap</a>',
-      }),
-    );
+    var topo = makeBase('topo', 'https://tile.opentopomap.org/{z}/{x}/{y}.png', {
+      maxZoom: 17,
+      attribution: '&copy; OSM, <a href="https://opentopomap.org/">OpenTopoMap</a>',
+    });
 
-    var ocean = L.tileLayer(
+    var ocean = makeBase(
+      'ocean',
       'https://server.arcgisonline.com/ArcGIS/rest/services/Ocean/World_Ocean_Base/MapServer/tile/{z}/{y}/{x}',
-      Object.assign({}, tCommon, {
-        maxZoom: 16,
-        attribution: '&copy; Esri, Garmin, GEBCO, NOAA NGDC',
-      }),
+      { maxZoom: 16, attribution: '&copy; Esri, GEBCO' },
     );
 
-    var seamark = L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png', {
+    if (!map.getPane('sisnagSeamarkPane')) {
+      map.createPane('sisnagSeamarkPane');
+      map.getPane('sisnagSeamarkPane').style.zIndex = 450;
+    }
+    if (!map.getPane('sisnagDepthPane')) {
+      map.createPane('sisnagDepthPane');
+      map.getPane('sisnagDepthPane').style.zIndex = 440;
+    }
+
+    var seamark = L.tileLayer('https://t1.openseamap.org/seamark/{z}/{x}/{y}.png', {
       maxZoom: 18,
       opacity: 1,
       detectRetina: false,
+      pane: 'sisnagSeamarkPane',
       attribution: '&copy; <a href="https://www.openseamap.org/">OpenSeaMap</a>',
     });
 
-    var depth = L.tileLayer('https://tiles.openseamap.org/depth/{z}/{x}/{y}.png', {
+    var depth = L.tileLayer('https://t1.openseamap.org/depth/{z}/{x}/{y}.png', {
       maxZoom: 18,
       opacity: 0.85,
       detectRetina: false,
+      pane: 'sisnagDepthPane',
       attribution: '&copy; OpenSeaMap depth',
     });
 
+    var seamarkMirror = null;
+    var depthMirror = null;
+
     var overlayState = { seamark: false, depth: false };
+    var seamarkFail = 0;
+
+    seamark.on('tileerror', function () {
+      seamarkFail++;
+      if (seamarkFail >= 6) {
+        setMapTileStatus('OpenSeaMap: rede bloqueou tiles — abra «Carta completa» no menu.');
+      }
+    });
+    seamark.on('tileload', function () {
+      if (overlayState.seamark) setMapTileStatus('OpenSeaMap: balizagem no mapa SISNAG');
+    });
 
     function switchBase(layer) {
       if (layer === activeBase) return;
@@ -114,24 +144,80 @@
       }, 50);
     }
 
-    osm.addTo(map);
-    var activeBase = osm;
+    var activeBase = baseCarto;
+    activeBase.addTo(map);
 
-    osm.on('tileerror', function () {
-      osmTileFails++;
-      if (activeBase !== osm || !map.hasLayer(osm)) return;
-      if (osmTileFails >= 2) {
-        switchBase(rasterStreetsEsriFallback);
+    function tryNextBaseFallback() {
+      fallbackIndex++;
+      if (fallbackIndex >= baseFallbackChain.length) {
+        setMapTileStatus('Mapa: sem tiles (rede bloqueou OSM/Esri/Carto).');
+        return;
       }
+      var next = baseFallbackChain[fallbackIndex];
+      if (next === activeBase) {
+        tryNextBaseFallback();
+        return;
+      }
+      switchBase(next);
+      setMapTileStatus('Mapa: base ' + (fallbackIndex + 1) + '/' + baseFallbackChain.length);
+    }
+
+    baseFallbackChain.forEach(function (layer) {
+      layer.on('tileerror', function () {
+        if (layer !== activeBase) return;
+        baseFailCount++;
+        if (baseFailCount >= 3) {
+          baseFailCount = 0;
+          tryNextBaseFallback();
+        }
+      });
+      layer.on('tileload', function () {
+        if (layer === activeBase) setMapTileStatus('Alvos: —');
+      });
     });
+
+    function syncVectorMirror(key, on) {
+      var vMap = global.__sisnagVectorMap;
+      if (!vMap) return;
+      if (key === 'seamark') {
+        if (on) {
+          if (!seamarkMirror) {
+            seamarkMirror = L.tileLayer('https://t1.openseamap.org/seamark/{z}/{x}/{y}.png', {
+              maxZoom: 18,
+              opacity: 1,
+              detectRetina: false,
+            });
+          }
+          if (!vMap.hasLayer(seamarkMirror)) seamarkMirror.addTo(vMap);
+        } else if (seamarkMirror && vMap.hasLayer(seamarkMirror)) {
+          vMap.removeLayer(seamarkMirror);
+        }
+      } else if (key === 'depth') {
+        if (on) {
+          if (!depthMirror) {
+            depthMirror = L.tileLayer('https://t1.openseamap.org/depth/{z}/{x}/{y}.png', {
+              maxZoom: 18,
+              opacity: 0.85,
+              detectRetina: false,
+            });
+          }
+          if (!vMap.hasLayer(depthMirror)) depthMirror.addTo(vMap);
+        } else if (depthMirror && vMap.hasLayer(depthMirror)) {
+          vMap.removeLayer(depthMirror);
+        }
+      }
+    }
 
     function toggleOverlay(layer, key, on) {
       if (on) {
         if (!map.hasLayer(layer)) layer.addTo(map);
         overlayState[key] = true;
+        syncVectorMirror(key, true);
+        layer.bringToFront();
       } else {
         if (map.hasLayer(layer)) map.removeLayer(layer);
         overlayState[key] = false;
+        syncVectorMirror(key, false);
       }
     }
 
@@ -163,19 +249,25 @@
             Opacidade Marine Traffic
             <input type="range" id="sisnag-mt-op" min="25" max="100" value="82" />
           </label>
+          <label class="sisnag-slider-row">
+            Opacidade OpenSeaMap
+            <input type="range" id="sisnag-osm-op" min="50" max="100" value="92" />
+          </label>
           <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-click-through" /> Cliques através (iframes ignoram dedo → mapa base / waypoints)</label>
 
           <p class="sisnag-layers-hint">Mapa base</p>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="osm" checked /> Ruas (OSM)</label>
+          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="carto" checked /> Ruas (CARTO / OSM)</label>
+          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="osm" /> Ruas (OSM direto)</label>
           <label class="sisnag-row"><input type="radio" name="sisnag-base" value="satellite" /> Satélite (Esri)</label>
           <label class="sisnag-row"><input type="radio" name="sisnag-base" value="topo" /> Relevo (OpenTopoMap)</label>
           <label class="sisnag-row"><input type="radio" name="sisnag-base" value="ocean" /> Fundo oceânico (Esri)</label>
 
-          <p class="sisnag-layers-hint">Sobreposições</p>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" /> OpenSeaMap — balizagem (ligado ao abrir)</label>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-depth" /> OpenSeaMap — batimetria</label>
+          <p class="sisnag-layers-hint">Sobreposições no mapa SISNAG (por cima das ruas)</p>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" checked /> Balizagem OpenSeaMap</label>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-depth" /> Batimetria OpenSeaMap</label>
 
-          <p class="sisnag-layers-hint">Painéis (embed)</p>
+          <p class="sisnag-layers-hint">Painéis (ecrã completo, como Windy)</p>
+          <button type="button" class="sisnag-panel-btn" id="sisnag-open-osm">🗺️ OpenSeaMap (carta completa)</button>
           <button type="button" class="sisnag-panel-btn" id="sisnag-open-windy">🌬️ Windy (meteo)</button>
           <button type="button" class="sisnag-panel-btn" id="sisnag-open-mt">🚢 Marine Traffic</button>
         </div>
@@ -198,12 +290,19 @@
 
     var windyOp = root.querySelector('#sisnag-windy-op');
     var mtOp = root.querySelector('#sisnag-mt-op');
+    var osmOp = root.querySelector('#sisnag-osm-op');
     windyOp.addEventListener('input', function () {
       document.documentElement.style.setProperty('--sisnag-windy-opacity', Number(windyOp.value) / 100);
     });
     mtOp.addEventListener('input', function () {
       document.documentElement.style.setProperty('--sisnag-mt-opacity', Number(mtOp.value) / 100);
     });
+    if (osmOp) {
+      document.documentElement.style.setProperty('--sisnag-osm-opacity', Number(osmOp.value) / 100);
+      osmOp.addEventListener('input', function () {
+        document.documentElement.style.setProperty('--sisnag-osm-opacity', Number(osmOp.value) / 100);
+      });
+    }
 
     root.querySelector('#sisnag-embed-click-through').addEventListener('change', function (ev) {
       if (!embedStack) return;
@@ -236,6 +335,7 @@
         if (!radio.checked) return;
         var v = radio.value;
         if (v === 'osm') switchBase(osm);
+        else if (v === 'carto') switchBase(baseCarto);
         else if (v === 'satellite') switchBase(satellite);
         else if (v === 'topo') switchBase(topo);
         else if (v === 'ocean') switchBase(ocean);
@@ -250,9 +350,14 @@
       toggleOverlay(depth, 'depth', e.target.checked);
     });
 
-    /** Ver carta náutica com balizagem sem abrir o menu (OpenSeaMap por cima do OSM). */
+    /** Balizagem activa ao arranque; espelho no overlay vectorial quando existir. */
     chkSeamark.checked = true;
     toggleOverlay(seamark, 'seamark', true);
+
+    global.__sisnagRefreshOsmOverlays = function () {
+      if (overlayState.seamark) syncVectorMirror('seamark', true);
+      if (overlayState.depth) syncVectorMirror('depth', true);
+    };
 
     root.querySelector('#sisnag-open-windy').addEventListener('click', function () {
       closeDrawer();
@@ -267,6 +372,13 @@
       closeDrawer();
       if (typeof global.openMarineTrafficPanel === 'function') {
         global.openMarineTrafficPanel();
+      }
+    });
+
+    root.querySelector('#sisnag-open-osm').addEventListener('click', function () {
+      closeDrawer();
+      if (typeof global.openOpenSeaMapPanel === 'function') {
+        global.openOpenSeaMapPanel();
       }
     });
 
@@ -292,12 +404,27 @@
       }
     };
 
-    setTimeout(function () {
+    map.whenReady(function () {
       try {
-        map.invalidateSize(false);
+        map.invalidateSize(true);
       } catch (e) {
         /* ignore */
       }
-    }, 120);
+    });
+
+    setTimeout(function () {
+      try {
+        map.invalidateSize(true);
+      } catch (e) {
+        /* ignore */
+      }
+    }, 100);
+    setTimeout(function () {
+      try {
+        map.invalidateSize(true);
+      } catch (e) {
+        /* ignore */
+      }
+    }, 800);
   };
 })(window);

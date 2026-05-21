@@ -45,6 +45,8 @@ const upload = multer({
   limits: { fileSize: 12 * 1024 * 1024 },
 });
 
+app.get('/favicon.ico', (_req, res) => res.redirect(302, '/favicon.svg'));
+
 app.use(express.static('public'));
 app.use(express.json({ limit: '10mb' }));
 

@@ -323,8 +323,13 @@
       keyboard: false,
     });
     vectorMap.setView(mainMap.getCenter(), mainMap.getZoom());
+    global.__sisnagVectorMap = vectorMap;
     waypointGroup = L.layerGroup().addTo(vectorMap);
     aisGroup = L.layerGroup().addTo(vectorMap);
+
+    if (typeof global.__sisnagRefreshOsmOverlays === 'function') {
+      global.__sisnagRefreshOsmOverlays();
+    }
 
     mainMap.on('move', function () {
       syncFromMain(mainMap);
@@ -335,8 +340,8 @@
 
     syncFromMain(mainMap);
     setTimeout(function () {
-      vectorMap.invalidateSize(false);
-      mainMap.invalidateSize(false);
+      vectorMap.invalidateSize(true);
+      mainMap.invalidateSize(true);
     }, 400);
 
     window.addEventListener('resize', function () {

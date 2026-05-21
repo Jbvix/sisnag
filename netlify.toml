@@ -10,3 +10,9 @@
 [build]
   publish = "public"
   command = "npm run build:netlify"
+
+# O browser pede /favicon.ico por defeito — redireciona para o SVG em public/
+[[redirects]]
+  from = "/favicon.ico"
+  to = "/favicon.svg"
+  status = 302
