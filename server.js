@@ -10,6 +10,7 @@ import { sensorSocketHandler } from './src/sockets/sensorSocketHandler.js';
 import { createGrokClient, grokChatModel, grokVisionModel } from './src/lib/grokClient.js';
 import { createCorsOriginCallback, corsStartupLogLine } from './src/http/corsConfig.js';
 import { buildSealagomBriefForChat } from './src/services/sealagom.service.js';
+import { buildNavigationBrief } from './src/lib/navigationBrief.js';
 
 dotenv.config();
 
@@ -183,9 +184,22 @@ app.post('/api/chat', async (req, res) => {
     const systemCore =
       'Você é o copiloto náutico SISNAG (rebocador): navegação, COLREGs, meteorologia e mar (incluir meteorologia marinha quando relevante a perigos, mar agitado, restrições e navegação), motores Caterpillar/MTU quando aplicável. ' +
       'Responda em português do Brasil, com prudência; avise quando faltar dados. ' +
+      'Se existir um bloco [Contexto de navegação SISNAG], use-o como fonte principal para origem/destino (waypoints #1 e último), pernas, distâncias em milhas náuticas (NM) e ETAs — os horários já foram calculados no servidor com SOG do GPS (se recente) ou velocidade planeada. ' +
+      'Para perguntas «em tempo real» com GPS activo, indique que a ETA depende do SOG actual e pode mudar. ' +
       'Se existir um bloco [SeaLag.om…], trate-o apenas como rumo rápido: o comando deve confirmar sempre com MMSI/coordenador NAVAREA/porto e fontes oficiais.';
 
     let systemFull = systemCore;
+
+    let navMeta = 'no_payload';
+    try {
+      const navBlock = buildNavigationBrief(req.body?.navigation);
+      navMeta = navBlock.meta || 'ok';
+      if (navBlock.brief) {
+        systemFull += `\n\n${navBlock.brief}`;
+      }
+    } catch (e) {
+      console.warn('[nav] contexto de rota falhou:', e.message || e);
+    }
     if (sealagomMeta === 'no_token') {
       systemFull += `\n\n(SeaLag.om desativado neste servidor: defina a variável de ambiente SEALAGOM_API_TOKEN para ingestão automática de avisos NAVAREA e costeiros.)`;
     } else if (sealagomBrief) {
@@ -200,7 +214,10 @@ app.post('/api/chat', async (req, res) => {
       ],
       max_tokens: 900,
     });
-    return res.json({ reply: completion.choices[0]?.message?.content || '' });
+    return res.json({
+      reply: completion.choices[0]?.message?.content || '',
+      meta: { sealagom: sealagomMeta, navigation: navMeta },
+    });
   } catch (e) {
     console.error(e);
     return res.status(500).json({ error: String(e.message || e) });

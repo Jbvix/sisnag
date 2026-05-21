@@ -50,7 +50,14 @@
             window.__sisnagSetVesselPosition(data.lat, data.lon, data.sog);
           }
           /** GPS mais recente — enviado ao /api/chat para filtrar avisos SeaLag.om por proximidade. */
-          global.__sisnagLastKnownGps = { lat: data.lat, lng: data.lon, ts: Date.now() };
+          global.__sisnagLastKnownGps = {
+            lat: data.lat,
+            lng: data.lon,
+            sog: Number(data.sog) || 0,
+            cog: Number(data.cog) || 0,
+            accuracy: data.accuracy,
+            ts: Date.now(),
+          };
         },
         (err) => gpsErrorNote(err),
         { enableHighAccuracy: true, maximumAge: 5000 },

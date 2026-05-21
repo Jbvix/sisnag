@@ -13,6 +13,9 @@
   var vesselMarker = null;
   var aisGroup = null;
   var waypointIdSeq = 1;
+  var routeName = 'Derrota SISNAG';
+  var gpxMeta = null;
+  var saveRouteTimer = null;
 
   function syncFromMain(mainMap) {
     if (!vectorMap || !mainMap) return;
@@ -114,36 +117,172 @@
     renderWaypointList();
   }
 
-  var LS_WP = 'sisnag_waypoints_v1';
-
-  function saveWaypointsLs() {
+  function gpxPointsFromLine() {
+    if (!gpxLine) return null;
     try {
-      var data = waypoints.map(function (w) {
-        return { id: w.id, lat: w.lat, lng: w.lng, name: w.name };
-      });
-      localStorage.setItem(LS_WP, JSON.stringify(data));
+      var ll = gpxLine.getLatLngs();
+      var flat = [];
+      function walk(arr) {
+        arr.forEach(function (p) {
+          if (Array.isArray(p)) walk(p);
+          else if (p && Number.isFinite(p.lat)) flat.push([p.lat, p.lng]);
+        });
+      }
+      walk(ll);
+      return flat.length ? flat : null;
     } catch (e) {
-      /* ignore */
+      return null;
     }
   }
 
-  function loadWaypointsLs() {
-    try {
-      var raw = localStorage.getItem(LS_WP);
-      if (!raw) return;
-      JSON.parse(raw).forEach(function (row) {
-        if (typeof row.lat === 'number' && typeof row.lng === 'number') {
-          var wid = typeof row.id === 'number' ? row.id : parseInt(row.id, 10);
-          addWaypointMarker(row.lat, row.lng, row.name || 'WP', Number.isFinite(wid) ? wid : null);
-        }
-      });
-      var maxId = waypoints.reduce(function (m, w) {
-        return Math.max(m, w.id || 0);
-      }, 0);
-      waypointIdSeq = Math.max(waypointIdSeq, maxId + 1);
-    } catch (e) {
-      /* ignore */
+  function updateRouteSaveStatus(result) {
+    var el = document.getElementById('nav-route-save-status');
+    if (!el) return;
+    if (result && result.ok) {
+      var t = result.updatedAt ? new Date(result.updatedAt) : new Date();
+      var when = t.toLocaleString('pt-BR', { hour12: false });
+      el.textContent = 'Guardado localmente · ' + when;
+      el.classList.remove('sisnag-route-status--err');
+    } else if (result && result.error) {
+      el.textContent = 'Erro ao guardar: ' + result.error;
+      el.classList.add('sisnag-route-status--err');
     }
+  }
+
+  function buildRouteSnapshot() {
+    var mm = global.__sisnagMainMap;
+    var mapView = null;
+    if (mm && typeof mm.getCenter === 'function') {
+      var c = mm.getCenter();
+      mapView = { lat: c.lat, lng: c.lng, zoom: mm.getZoom() };
+    }
+    return {
+      version: 2,
+      name: routeName,
+      waypoints: waypoints.map(function (w) {
+        return { id: w.id, lat: w.lat, lng: w.lng, name: w.name };
+      }),
+      gpxTrack: gpxPointsFromLine(),
+      gpxMeta: gpxMeta,
+      mapView: mapView,
+    };
+  }
+
+  /** Grava derrota completa (waypoints + GPX + vista). */
+  function persistRoute(immediate) {
+    if (!global.sisnagRouteStorage) return;
+    if (saveRouteTimer) {
+      clearTimeout(saveRouteTimer);
+      saveRouteTimer = null;
+    }
+    function run() {
+      var result = global.sisnagRouteStorage.save(buildRouteSnapshot());
+      updateRouteSaveStatus(result);
+    }
+    if (immediate) run();
+    else saveRouteTimer = setTimeout(run, 350);
+  }
+
+  function saveWaypointsLs() {
+    persistRoute(false);
+  }
+
+  function applyGpxTrack(points, meta, fitMap) {
+    if (!vectorMap) return;
+    if (gpxLine) {
+      vectorMap.removeLayer(gpxLine);
+      gpxLine = null;
+    }
+    if (!points || !points.length) {
+      gpxMeta = null;
+      persistRoute(true);
+      return;
+    }
+    gpxLine = L.polyline(points, {
+      color: '#f472b6',
+      weight: 4,
+      opacity: 1,
+      lineCap: 'round',
+      lineJoin: 'round',
+    }).addTo(vectorMap);
+    gpxMeta = meta || { restored: true, pointCount: points.length };
+    var mainMap = global.__sisnagMainMap;
+    if (fitMap && mainMap) {
+      if (points.length === 1) {
+        mainMap.setView(points[0], 13);
+      } else {
+        mainMap.fitBounds(L.latLngBounds(points), { maxZoom: 14, padding: [48, 48] });
+      }
+      syncFromMain(mainMap);
+    }
+    persistRoute(false);
+  }
+
+  function restoreMapView(mapView) {
+    if (!mapView || !global.__sisnagMainMap) return;
+    var la = Number(mapView.lat);
+    var lo = Number(mapView.lng);
+    var z = Number(mapView.zoom);
+    if (!Number.isFinite(la) || !Number.isFinite(lo)) return;
+    global.__sisnagMainMap.setView([la, lo], Number.isFinite(z) ? z : 9);
+    syncFromMain(global.__sisnagMainMap);
+  }
+
+  function loadPersistedRoute() {
+    if (!global.sisnagRouteStorage) return;
+    var route = global.sisnagRouteStorage.load();
+    if (!route) return;
+    routeName = route.name || routeName;
+    gpxMeta = route.gpxMeta || null;
+
+    (route.waypoints || []).forEach(function (row) {
+      if (typeof row.lat === 'number' && typeof row.lng === 'number') {
+        var wid = typeof row.id === 'number' ? row.id : parseInt(row.id, 10);
+        addWaypointMarker(row.lat, row.lng, row.name || 'WP', Number.isFinite(wid) ? wid : null);
+      }
+    });
+    var maxId = waypoints.reduce(function (m, w) {
+      return Math.max(m, w.id || 0);
+    }, 0);
+    waypointIdSeq = Math.max(waypointIdSeq, maxId + 1);
+
+    if (route.gpxTrack && route.gpxTrack.length) {
+      applyGpxTrack(route.gpxTrack, route.gpxMeta, false);
+    }
+
+    if (route.mapView) {
+      restoreMapView(route.mapView);
+    } else if (waypoints.length === 1) {
+      restoreMapView({ lat: waypoints[0].lat, lng: waypoints[0].lng, zoom: 13 });
+    } else if (waypoints.length >= 2) {
+      var bounds = L.latLngBounds(
+        waypoints.map(function (w) {
+          return [w.lat, w.lng];
+        }),
+      );
+      if (global.__sisnagMainMap) {
+        global.__sisnagMainMap.fitBounds(bounds, { maxZoom: 14, padding: [48, 48] });
+        syncFromMain(global.__sisnagMainMap);
+      }
+    }
+
+    updateRouteSaveStatus({ ok: true, updatedAt: route.updatedAt });
+  }
+
+  function clearAllRouteData() {
+    waypoints.forEach(function (wp) {
+      if (waypointGroup && wp.marker) waypointGroup.removeLayer(wp.marker);
+    });
+    waypoints = [];
+    applyGpxTrack(null, null, false);
+    refreshWaypointNumerationAndLegs();
+    if (global.sisnagRouteStorage) {
+      global.sisnagRouteStorage.clear();
+      global.sisnagRouteStorage.save(buildRouteSnapshot());
+    }
+    routeName = 'Derrota SISNAG';
+    gpxMeta = null;
+    updateRouteSaveStatus({ ok: true, updatedAt: new Date().toISOString() });
   }
 
   function renderWaypointList() {
@@ -337,6 +476,9 @@
     mainMap.on('zoom', function () {
       syncFromMain(mainMap);
     });
+    mainMap.on('moveend', function () {
+      persistRoute(false);
+    });
 
     syncFromMain(mainMap);
     setTimeout(function () {
@@ -366,26 +508,19 @@
                 alert('GPX sem trk/rte pontos nem wpt válidos.');
                 return;
               }
-              if (gpxLine && vectorMap) vectorMap.removeLayer(gpxLine);
               if (pts.length) {
-                gpxLine = L.polyline(pts, {
-                  color: '#f472b6',
-                  weight: 4,
-                  opacity: 1,
-                  lineCap: 'round',
-                  lineJoin: 'round',
-                }).addTo(vectorMap);
-                if (pts.length === 1) {
-                  mainMap.setView(pts[0], 13);
-                } else {
-                  var b = L.latLngBounds(pts);
-                  mainMap.fitBounds(b, { maxZoom: 14, padding: [48, 48] });
-                }
-                syncFromMain(mainMap);
+                gpxMeta = {
+                  fileName: file.name || 'import.gpx',
+                  importedAt: new Date().toISOString(),
+                  pointCount: pts.length,
+                };
+                applyGpxTrack(pts, gpxMeta, true);
                 setTimeout(function () {
                   vectorMap.invalidateSize(false);
                   mainMap.invalidateSize(false);
                 }, 200);
+              } else {
+                persistRoute(true);
               }
             } catch (err) {
               alert('Erro ao ler GPX: ' + String(err.message || err));
@@ -413,9 +548,62 @@
       };
     }
 
-    loadWaypointsLs();
+    loadPersistedRoute();
     refreshWaypointNumerationAndLegs();
     renderWaypointList();
+
+    window.addEventListener('beforeunload', function () {
+      persistRoute(true);
+    });
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'hidden') persistRoute(true);
+    });
+
+    var btnExport = document.getElementById('nav-export-gpx');
+    if (btnExport && global.sisnagRouteStorage) {
+      btnExport.addEventListener('click', function () {
+        persistRoute(true);
+        global.sisnagRouteStorage.downloadGpx(buildRouteSnapshot());
+      });
+    }
+
+    var btnClear = document.getElementById('nav-clear-route');
+    if (btnClear) {
+      btnClear.addEventListener('click', function () {
+        if (
+          !window.confirm(
+            'Apagar derrota guardada neste dispositivo (waypoints e trilha GPX)? Esta acção não pode ser desfeita.',
+          )
+        ) {
+          return;
+        }
+        clearAllRouteData();
+        refreshWaypointNumerationAndLegs();
+        renderWaypointList();
+      });
+    }
+
+    global.__sisnagCollectWaypoints = function () {
+      return waypoints.map(function (w, i) {
+        return {
+          order: i + 1,
+          id: w.id,
+          name: w.name || 'Waypoint',
+          lat: w.lat,
+          lng: w.lng,
+        };
+      });
+    };
+
+    global.__sisnagGetGpxSummary = function () {
+      var pts = gpxPointsFromLine();
+      if (!pts || !pts.length) return null;
+      return {
+        pointCount: pts.length,
+        fileName: gpxMeta && gpxMeta.fileName ? gpxMeta.fileName : null,
+        importedAt: gpxMeta && gpxMeta.importedAt ? gpxMeta.importedAt : null,
+      };
+    };
   };
 
   /** Duplica geometria GPX também no mapa base (tiles) para navegação quando embeds fechados — opcional. */

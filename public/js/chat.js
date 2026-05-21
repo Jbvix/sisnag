@@ -89,17 +89,24 @@
       return out;
     }
 
+    function buildChatPayload(text) {
+      const payload = { message: text, ...nearPayloadForSealagom() };
+      if (typeof global.__sisnagGetNavigationContext === 'function') {
+        payload.navigation = global.__sisnagGetNavigationContext();
+      }
+      return payload;
+    }
+
     async function send() {
       const text = input.value.trim();
       if (!text) return;
       input.value = '';
       addChatMessage('Você', escapeHtml(text));
       try {
-        const coords = nearPayloadForSealagom();
         const res = await fetch(window.__sisnagApiUrl('/api/chat'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ message: text, ...coords }),
+          body: JSON.stringify(buildChatPayload(text)),
         });
         const data = await res.json().catch(() => ({}));
         const reply = data.reply || data.error || 'Sem resposta do servidor.';
@@ -124,6 +131,9 @@
       }
     });
 
-    addChatMessage('IA', 'Copiloto SISNAG pronto. Envie uma pergunta ou use a captura de tela dos displays.');
+    addChatMessage(
+      'IA',
+      'Copiloto SISNAG pronto. Tenho acesso aos waypoints (#1 origem → último destino), GPS/SOG em tempo real e ETAs calculadas a cada pergunta. Ex.: «Que horas chego ao waypoint 3?» ou «Quando passamos por Salvador?»',
+    );
   };
 })(window);

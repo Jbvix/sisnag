@@ -378,6 +378,30 @@
       min-width: 1.75rem;
     }
     .nav-wp-row button { padding: 4px 8px; border-radius: 6px; border: none; cursor: pointer; font-size: 11px; }
+    #nav-route-save-status {
+      font-size: 10px;
+      color: #64748b;
+      margin: 0 0 8px;
+      line-height: 1.35;
+    }
+    #nav-route-save-status.sisnag-route-status--err { color: #b91c1c; }
+    .nav-route-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .nav-route-actions button {
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .nav-route-actions button.danger { background: #fecaca; color: #7f1d1d; }
     #fuel-badge {
       margin-top: 6px;
       font-size: 11px;
@@ -631,8 +655,13 @@
   </div>
 
   <div id="nav-wp-sheet">
-    <div class="nav-wp-head"><strong>Waypoints</strong><button type="button" id="nav-wp-close" style="background:#334155;border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;">✕</button></div>
-    <p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">Ordem #1…#n = linha tracejada de seguimento no mapa. Arraste marcadores ou edite por coordenadas.</p>
+    <div class="nav-wp-head"><strong>Derrota / waypoints</strong><button type="button" id="nav-wp-close" style="background:#334155;border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;">✕</button></div>
+    <p id="nav-route-save-status">A carregar derrota guardada…</p>
+    <div class="nav-route-actions">
+      <button type="button" id="nav-export-gpx" title="Backup GPX">⬇ Exportar GPX</button>
+      <button type="button" id="nav-clear-route" class="danger" title="Apagar tudo neste dispositivo">🗑 Limpar derrota</button>
+    </div>
+    <p style="margin:0 0 8px;font-size:11px;color:#94a3b8;">Ordem #1…#n = linha tracejada. Guardado automaticamente neste dispositivo. Arraste marcadores ou edite por coordenadas.</p>
     <div id="nav-wp-list"></div>
   </div>
 
@@ -647,7 +676,9 @@
   <script src="/js/chat.js"></script>
   <script src="/js/camera-upload.js"></script>
   <script src="/js/fuelPanel.js"></script>
+  <script src="/js/routeStorage.js"></script>
   <script src="/js/navigationOverlay.js"></script>
+  <script src="/js/navigationContext.js"></script>
   <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>
   <script src="/js/openseamapEmbed.js"></script>

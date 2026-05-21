@@ -128,11 +128,16 @@
       if (overlayState.seamark) setMapTileStatus('OpenSeaMap: balizagem no mapa SISNAG');
     });
 
-    function switchBase(layer) {
+    function setActiveBaseLabel(v) {
+      global.__sisnagActiveBaseLayer = v;
+    }
+
+    function switchBase(layer, label) {
       if (layer === activeBase) return;
       map.removeLayer(activeBase);
       layer.addTo(map);
       activeBase = layer;
+      if (label) setActiveBaseLabel(label);
       if (overlayState.seamark && map.hasLayer(seamark)) seamark.bringToFront();
       if (overlayState.depth && map.hasLayer(depth)) depth.bringToFront();
       setTimeout(function () {
@@ -146,6 +151,7 @@
 
     var activeBase = baseCarto;
     activeBase.addTo(map);
+    setActiveBaseLabel('carto');
 
     function tryNextBaseFallback() {
       fallbackIndex++;
@@ -158,7 +164,7 @@
         tryNextBaseFallback();
         return;
       }
-      switchBase(next);
+      switchBase(next, 'fallback');
       setMapTileStatus('Mapa: base ' + (fallbackIndex + 1) + '/' + baseFallbackChain.length);
     }
 
@@ -334,11 +340,11 @@
       radio.addEventListener('change', function () {
         if (!radio.checked) return;
         var v = radio.value;
-        if (v === 'osm') switchBase(osm);
-        else if (v === 'carto') switchBase(baseCarto);
-        else if (v === 'satellite') switchBase(satellite);
-        else if (v === 'topo') switchBase(topo);
-        else if (v === 'ocean') switchBase(ocean);
+        if (v === 'osm') switchBase(osm, 'osm');
+        else if (v === 'carto') switchBase(baseCarto, 'carto');
+        else if (v === 'satellite') switchBase(satellite, 'satellite');
+        else if (v === 'topo') switchBase(topo, 'topo');
+        else if (v === 'ocean') switchBase(ocean, 'ocean');
       });
     });
 
