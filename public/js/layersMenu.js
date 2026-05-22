@@ -1,14 +1,5 @@
 /* global L, window, document */
 (function layersMenu(global) {
-  function buildWindyUrl(lat, lng, zoom) {
-    const z = Math.max(3, Math.min(11, Math.round(Number(zoom) || 9)));
-    const la = Number(lat).toFixed(4);
-    const lo = Number(lng).toFixed(4);
-    const w = Math.min(1650, Math.max(520, Math.round(window.innerWidth || 1280)));
-    const h = Math.min(1200, Math.max(520, Math.round(window.innerHeight || 820)));
-    return `https://embed.windy.com/embed2.html?lat=${la}&lon=${lo}&detailLat=${la}&detailLon=${lo}&width=${w}&height=${h}&zoom=${z}&level=surface&overlay=wind&product=ecmwf&metric=kmh&message=false`;
-  }
-
   function refreshEmbedStack() {
     var stack = document.getElementById('embed-stack');
     var windy = document.getElementById('windy-panel');
@@ -25,16 +16,13 @@
 
   global.__sisnagRefreshEmbedStack = refreshEmbedStack;
 
-  function syncWindyIframe(map, iframe) {
-    if (!iframe) return;
-    const c = map.getCenter();
-    iframe.src = buildWindyUrl(c.lat, c.lng, map.getZoom());
-  }
-
   /**
    * @param {L.Map} map
    */
   global.initSisnagLayersMenu = function initSisnagLayersMenu(map) {
+    if (typeof global.__sisnagAttachEmbedMapListeners === 'function') {
+      global.__sisnagAttachEmbedMapListeners(map);
+    }
     var tCommon = { detectRetina: false };
 
     function setMapTileStatus(msg) {
@@ -259,7 +247,7 @@
             Opacidade OpenSeaMap
             <input type="range" id="sisnag-osm-op" min="50" max="100" value="92" />
           </label>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-click-through" /> Cliques através (iframes ignoram dedo → mapa base / waypoints)</label>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-click-through" /> Cliques através (mover o mapa/derrota por baixo do Windy/MT — overlays seguem ao soltar)</label>
 
           <p class="sisnag-layers-hint">Mapa base</p>
           <label class="sisnag-row"><input type="radio" name="sisnag-base" value="carto" checked /> Ruas (CARTO / OSM)</label>
@@ -367,10 +355,14 @@
 
     root.querySelector('#sisnag-open-windy').addEventListener('click', function () {
       closeDrawer();
-      if (windyPanel && windyIframe) {
+      if (windyPanel) {
         windyPanel.classList.add('is-open');
         refreshEmbedStack();
-        syncWindyIframe(map, windyIframe);
+        setTimeout(function () {
+          if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
+            global.__sisnagSyncEmbedsToRoute(map);
+          }
+        }, 80);
       }
     });
 
@@ -396,17 +388,23 @@
     if (btnWindyClose && windyPanel) {
       btnWindyClose.addEventListener('click', closeWindy);
     }
-    if (btnWindySync && windyIframe) {
+    if (btnWindySync) {
       btnWindySync.addEventListener('click', function () {
-        syncWindyIframe(map, windyIframe);
+        if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
+          global.__sisnagSyncEmbedsToRoute(map);
+        }
       });
     }
 
     global.openWindyPanel = function () {
-      if (windyPanel && windyIframe) {
+      if (windyPanel) {
         windyPanel.classList.add('is-open');
         refreshEmbedStack();
-        syncWindyIframe(map, windyIframe);
+        setTimeout(function () {
+          if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
+            global.__sisnagSyncEmbedsToRoute(map);
+          }
+        }, 80);
       }
     };
 

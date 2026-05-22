@@ -21,6 +21,8 @@
       /** Mapa base acima do stack de embeds (transparente) para os tiles pintarem; vector e UI acima. */
       --sisnag-z-embed: 18;
       --sisnag-z-map: 32;
+      /** Windy/MT entre mapa base e waypoints — mesma área, alinhamento visual. */
+      --sisnag-z-embed-over-map: 40;
       --sisnag-z-vector: 48;
       --sisnag-z-chat: 10080;
       --sisnag-z-status: 10090;
@@ -191,7 +193,7 @@
       max-width: 100%;
     }
 
-    /* Embeds — mesma margem inferior que o mapa; em fullscreen cobre o rodapé. */
+    /* Embeds — mesma caixa que #map (não cobre o chat) para coincidir com waypoints. */
     #embed-stack {
       position: fixed;
       top: 0;
@@ -201,12 +203,10 @@
       z-index: var(--sisnag-z-embed);
       pointer-events: none;
     }
-    /** Com painel aberto ocupa ecrã inteiro (por cima do chat) */
     #embed-stack:has(#mt-panel.is-open),
     #embed-stack:has(#windy-panel.is-open),
     #embed-stack:has(#osm-panel.is-open) {
-      bottom: 0;
-      z-index: var(--sisnag-z-embed-fullscreen);
+      z-index: var(--sisnag-z-embed-over-map);
     }
     /** Sem painéis embed abertos, o stack não interfere no mapa base. */
     #embed-stack:not(:has(#windy-panel.is-open)):not(:has(#mt-panel.is-open)):not(:has(#osm-panel.is-open)) {
@@ -221,20 +221,23 @@
 
     #windy-panel, #mt-panel, #osm-panel {
       display: none;
-      flex-direction: column;
       position: absolute;
       inset: 0;
       color: #e2e8f0;
     }
-    #windy-panel.is-open, #mt-panel.is-open, #osm-panel.is-open { display: flex; }
+    #windy-panel.is-open, #mt-panel.is-open, #osm-panel.is-open { display: block; }
 
-    /* Transparência só na área do mapa externo — barra de ferramentas fica legível */
+    /* Transparência — iframe ocupa a mesma área que o mapa Leaflet */
     #windy-panel.is-open .embed-shell { opacity: var(--sisnag-windy-opacity); }
     #mt-panel.is-open .embed-shell { opacity: var(--sisnag-mt-opacity); }
     #osm-panel.is-open .embed-shell { opacity: var(--sisnag-osm-opacity); }
 
     .embed-toolbar {
-      flex-shrink: 0;
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 3;
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
@@ -244,7 +247,6 @@
       border-bottom: 1px solid #334155;
       font-size: 13px;
       pointer-events: auto;
-      z-index: 2;
     }
     #windy-panel .embed-toolbar { border-bottom-color: #0369a1; background: rgba(12, 74, 110, 0.95); color: #e0f2fe; }
     #osm-panel .embed-toolbar { border-bottom-color: #0d9488; background: rgba(15, 118, 110, 0.95); color: #ccfbf1; }
@@ -262,9 +264,8 @@
     #osm-panel .embed-toolbar button { background: #0f766e; color: #f0fdfa; }
 
     .embed-shell {
-      flex: 1;
-      min-height: 0;
-      position: relative;
+      position: absolute;
+      inset: 0;
       background: transparent;
     }
     .embed-shell iframe {
@@ -564,7 +565,7 @@
       <div class="embed-toolbar windy-toolbar">
         <span style="font-weight:700;">Windy — ecrã completo</span>
         <button type="button" id="windy-close" title="Fechar">✕ Fechar</button>
-        <button type="button" id="windy-sync-map" title="Centro">↻ Centro = mapa</button>
+        <button type="button" id="windy-sync-map" title="Centro">↻ Sincronizar derrota</button>
       </div>
       <div class="embed-shell">
         <iframe id="windy-iframe" title="Windy map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
@@ -575,7 +576,7 @@
       <div class="embed-toolbar mt-toolbar">
         <span style="font-weight:700;">Marine Traffic — ecrã completo</span>
         <button type="button" id="mt-close" title="Fechar">✕ Fechar</button>
-        <button type="button" id="mt-sync-map" title="Centro">↻ Centro = mapa</button>
+        <button type="button" id="mt-sync-map" title="Centro">↻ Sincronizar derrota</button>
         <button type="button" id="mt-capture-grok">📸 Captura → Grok</button>
         <button type="button" id="mt-socket-refresh">🔔 Socket refresh</button>
       </div>
@@ -679,6 +680,7 @@
   <script src="/js/routeStorage.js"></script>
   <script src="/js/navigationOverlay.js"></script>
   <script src="/js/navigationContext.js"></script>
+  <script src="/js/embedMapSync.js"></script>
   <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>
   <script src="/js/openseamapEmbed.js"></script>

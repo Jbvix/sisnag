@@ -169,8 +169,16 @@
   }
 
   /** Grava derrota completa (waypoints + GPX + vista). */
-  function persistRoute(immediate) {
-    if (!global.sisnagRouteStorage) return;
+    function notifyEmbedRouteChanged() {
+      var mm = global.__sisnagMainMap;
+      if (!mm || typeof global.__sisnagDebouncedEmbedSync !== 'function') return;
+      var windyOpen = document.getElementById('windy-panel')?.classList.contains('is-open');
+      var mtOpen = document.getElementById('mt-panel')?.classList.contains('is-open');
+      if (windyOpen || mtOpen) global.__sisnagDebouncedEmbedSync(mm);
+    }
+
+    function persistRoute(immediate) {
+      if (!global.sisnagRouteStorage) return;
     if (saveRouteTimer) {
       clearTimeout(saveRouteTimer);
       saveRouteTimer = null;
@@ -178,6 +186,7 @@
     function run() {
       var result = global.sisnagRouteStorage.save(buildRouteSnapshot());
       updateRouteSaveStatus(result);
+      notifyEmbedRouteChanged();
     }
     if (immediate) run();
     else saveRouteTimer = setTimeout(run, 350);

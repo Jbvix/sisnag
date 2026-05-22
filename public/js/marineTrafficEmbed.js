@@ -1,16 +1,5 @@
 /* global L, window, document */
 (function marineTrafficEmbed(global) {
-  /**
-   * URL oficial de embed AIS (parâmetros documentados pela MarineTraffic).
-   * @see https://www.marinetraffic.com/en/p/embed-map
-   */
-  function buildMarineTrafficEmbedUrl(lat, lng, zoom) {
-    const z = Math.max(2, Math.min(17, Math.round(Number(zoom) || 10)));
-    const y = Number(lat).toFixed(5);
-    const x = Number(lng).toFixed(5);
-    return `https://www.marinetraffic.com/en/ais/embed/zoom:${z}/centery:${y}/centerx:${x}/maptype:0/shownames:true/mmsi:0/shipid:0/fleet:/fleet_id:/vtypes:/showmenu:true/remember:false`;
-  }
-
   global.initMarineTrafficEmbed = function initMarineTrafficEmbed(map, socket) {
     const panel = document.getElementById('mt-panel');
     const iframe = document.getElementById('mt-iframe');
@@ -21,9 +10,9 @@
     }
 
     function syncIframeFromMap() {
-      if (!iframe) return;
-      const c = map.getCenter();
-      iframe.src = buildMarineTrafficEmbedUrl(c.lat, c.lng, map.getZoom());
+      if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
+        global.__sisnagSyncEmbedsToRoute(map);
+      }
     }
 
     const btnOpen = document.getElementById('btn-mt-embed');
@@ -35,9 +24,9 @@
     function openPanel() {
       if (!panel) return;
       panel.classList.add('is-open');
-      syncIframeFromMap();
-      setStatus('Marine Traffic incorporado: use captura de ecrã do mapa e “Captura → Grok”.');
       if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
+      setTimeout(syncIframeFromMap, 80);
+      setStatus('Marine Traffic sincronizado com a derrota. Mova o mapa ou use «Sincronizar derrota» se desalinhar.');
     }
 
     global.openMarineTrafficPanel = openPanel;
