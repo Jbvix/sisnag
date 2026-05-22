@@ -1,5 +1,114 @@
 /* global window, document */
 (function attachChat(global) {
+  var CHAT_H_STORAGE = 'sisnag_chat_footer_h';
+  var CHAT_H_MIN = 112;
+  var CHAT_H_MAX_PX = 340;
+
+  function chatFooterMaxPx() {
+    var vh = window.innerHeight || 600;
+    return Math.min(CHAT_H_MAX_PX, Math.round(vh * 0.52));
+  }
+
+  function applyChatFooterHeight(px) {
+    var h = Math.max(CHAT_H_MIN, Math.min(chatFooterMaxPx(), Math.round(px)));
+    document.documentElement.style.setProperty('--sisnag-footer-chat-h', h + 'px');
+    return h;
+  }
+
+  function restoreChatFooterHeight() {
+    try {
+      var v = parseInt(localStorage.getItem(CHAT_H_STORAGE), 10);
+      if (Number.isFinite(v) && v >= CHAT_H_MIN) applyChatFooterHeight(v);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function invalidateMapsAfterChatResize() {
+    try {
+      var mm = global.__sisnagMainMap || global.__sisnagMainLeafletMap;
+      if (mm && typeof mm.invalidateSize === 'function') mm.invalidateSize(false);
+      var vm = global.__sisnagVectorMap;
+      if (vm && typeof vm.invalidateSize === 'function') vm.invalidateSize(false);
+    } catch (e) {
+      /* ignore */
+    }
+    if (typeof global.__sisnagDebouncedEmbedSync === 'function') {
+      var m = global.__sisnagMainMap || global.__sisnagMainLeafletMap;
+      if (m) global.__sisnagDebouncedEmbedSync(m);
+    }
+  }
+
+  function attachChatResizeHandle(root) {
+    if (!root || root.querySelector('.sisnag-chat-resize-handle')) return;
+
+    var handle = document.createElement('button');
+    handle.type = 'button';
+    handle.className = 'sisnag-chat-resize-handle';
+    handle.setAttribute('aria-label', 'Arrastar para ajustar altura do copiloto e dar mais espaço ao mapa');
+    handle.title = 'Arrastar para redimensionar';
+    root.insertBefore(handle, root.firstChild);
+
+    var dragging = false;
+    var startY = 0;
+    var startH = 0;
+
+    function onPointerMove(e) {
+      if (!dragging) return;
+      applyChatFooterHeight(startH + (startY - e.clientY));
+    }
+
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      document.body.classList.remove('sisnag-chat-resizing');
+      try {
+        var h = applyChatFooterHeight(root.getBoundingClientRect().height);
+        localStorage.setItem(CHAT_H_STORAGE, String(h));
+      } catch (err) {
+        /* ignore */
+      }
+      invalidateMapsAfterChatResize();
+      window.setTimeout(invalidateMapsAfterChatResize, 120);
+    }
+
+    handle.addEventListener('pointerdown', function (e) {
+      dragging = true;
+      startY = e.clientY;
+      startH = root.getBoundingClientRect().height;
+      document.body.classList.add('sisnag-chat-resizing');
+      handle.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    handle.addEventListener('pointermove', onPointerMove);
+    handle.addEventListener('pointerup', endDrag);
+    handle.addEventListener('pointercancel', endDrag);
+    handle.addEventListener('lostpointercapture', endDrag);
+
+    handle.addEventListener('dblclick', function () {
+      document.documentElement.style.removeProperty('--sisnag-footer-chat-h');
+      try {
+        localStorage.removeItem(CHAT_H_STORAGE);
+      } catch (err) {
+        /* ignore */
+      }
+      invalidateMapsAfterChatResize();
+    });
+  }
+
+  restoreChatFooterHeight();
+  window.addEventListener('resize', function () {
+    try {
+      var cur = parseInt(
+        getComputedStyle(document.documentElement).getPropertyValue('--sisnag-footer-chat-h'),
+        10,
+      );
+      if (Number.isFinite(cur)) applyChatFooterHeight(cur);
+    } catch (e) {
+      /* ignore */
+    }
+  });
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -36,6 +145,8 @@
     root.style.display = 'flex';
     root.style.flexDirection = 'column';
     root.innerHTML = '';
+
+    attachChatResizeHandle(root);
 
     const header = document.createElement('div');
     header.className = 'sisnag-chat-head';
