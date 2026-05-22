@@ -31,6 +31,10 @@
       --sisnag-z-layers-backdrop: 10140;
       --sisnag-z-layers-drawer: 10150;
       --sisnag-z-embed-fullscreen: 10190;
+      --sisnag-dock-btn-size: 46px;
+      --sisnag-dock-gutter: calc(var(--sisnag-dock-btn-size) + 16px + env(safe-area-inset-left));
+      --sisnag-dock-gutter-right: calc(var(--sisnag-dock-btn-size) + 16px + env(safe-area-inset-right));
+      --sisnag-safe-top: calc(10px + env(safe-area-inset-top));
     }
 
     html, body {
@@ -67,9 +71,18 @@
     }
 
     /* Docas laterais — ícones SVG, mobile first */
+    /** Controles Leaflet — canto inferior direito, acima do chat (não sobrepõe docas). */
+    #map .leaflet-control-container .leaflet-top.leaflet-left {
+      display: none;
+    }
+    #map .leaflet-control-container .leaflet-bottom.leaflet-right {
+      margin-right: var(--sisnag-dock-gutter-right);
+      margin-bottom: calc(var(--sisnag-footer-chat-h) + 12px + env(safe-area-inset-bottom));
+    }
+
     .sisnag-dock {
       position: fixed;
-      top: calc(10px + env(safe-area-inset-top));
+      top: var(--sisnag-safe-top);
       max-height: calc(100vh - var(--sisnag-footer-chat-h) - env(safe-area-inset-bottom) - 24px);
       z-index: var(--sisnag-z-dock);
       display: flex;
@@ -86,8 +99,8 @@
 
     .sisnag-dock-btn {
       flex-shrink: 0;
-      width: 46px;
-      height: 46px;
+      width: var(--sisnag-dock-btn-size);
+      height: var(--sisnag-dock-btn-size);
       border: none;
       border-radius: 14px;
       background: rgba(15, 23, 42, 0.92);
@@ -116,27 +129,39 @@
       word-break: break-all;
     }
 
-    /** Sem doca direita no DOM, o botão camadas fica no canto direito (compat). */
-    .sisnag-layers-root > .sisnag-dock-btn {
+    .sisnag-layers-root {
       position: fixed;
-      top: calc(10px + env(safe-area-inset-top));
-      right: max(8px, env(safe-area-inset-right));
-      left: auto;
-      z-index: var(--sisnag-z-dock);
+      width: 0;
+      height: 0;
+      overflow: visible;
+      pointer-events: none;
+      z-index: var(--sisnag-z-layers-drawer);
+    }
+    .sisnag-layers-root .sisnag-layers-backdrop,
+    .sisnag-layers-root .sisnag-layers-drawer {
+      pointer-events: auto;
     }
 
-    /** Starlink / GPS — só ícones + barras de “sinal”. */
+    /** Starlink / GPS — centro superior (livre das docas laterais). */
     #sisnag-status-strip {
       position: fixed;
-      left: calc(58px + env(safe-area-inset-left));
-      top: calc(10px + env(safe-area-inset-top));
+      left: 50%;
+      transform: translateX(-50%);
+      top: var(--sisnag-safe-top);
       z-index: var(--sisnag-z-status);
-      max-width: min(calc(100vw - 56px - 56px - 24px), 220px);
+      max-width: min(calc(100vw - var(--sisnag-dock-gutter) - var(--sisnag-dock-gutter-right) - 16px), 260px);
+      align-items: center;
       display: flex;
       flex-direction: column;
       gap: 6px;
       pointer-events: none;
     }
+    body:has(#embed-stack #windy-panel.is-open) #sisnag-status-strip,
+    body:has(#embed-stack #mt-panel.is-open) #sisnag-status-strip,
+    body:has(#embed-stack #osm-panel.is-open) #sisnag-status-strip {
+      top: calc(var(--sisnag-safe-top) + 54px);
+    }
+
     #sisnag-status-strip .sisnag-status-icons-row {
       display: flex;
       flex-direction: row;
@@ -187,14 +212,16 @@
       margin: 0;
       font-size: 10px;
       line-height: 1.3;
-      color: #475569;
-      text-shadow: 0 1px 2px rgba(255,255,255,0.85);
+      color: #e2e8f0;
+      text-align: center;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       pointer-events: auto;
-      padding: 2px 4px;
+      padding: 4px 8px;
       max-width: 100%;
+      border-radius: 8px;
+      background: rgba(15, 23, 42, 0.75);
     }
 
     /* Embeds — mesma caixa que #map (não cobre o chat) para coincidir com waypoints. */
@@ -231,12 +258,20 @@
       pointer-events: auto;
     }
     /** Sem tiles OSM por baixo — só Windy + waypoints (evita rótulos Brasil em cima da África) */
-    body.sisnag-embed-drive #map .leaflet-tile-pane {
+    body.sisnag-embed-drive #map {
+      background: #0b1220 !important;
+    }
+    body.sisnag-embed-drive #map .leaflet-tile-pane,
+    body.sisnag-embed-drive #map .leaflet-overlay-pane {
       opacity: 0 !important;
       visibility: hidden !important;
+      pointer-events: none !important;
     }
     body.sisnag-embed-drive #map.leaflet-container {
-      background: transparent !important;
+      background: #0b1220 !important;
+    }
+    body.sisnag-embed-drive #embed-stack {
+      background: #0b1220;
     }
     body.sisnag-embed-drive #map-vector-overlay {
       pointer-events: none;
@@ -247,20 +282,42 @@
       position: absolute;
       inset: 0;
       color: #e2e8f0;
+      background: #0b1220;
+      flex-direction: column;
     }
-    #windy-panel.is-open, #mt-panel.is-open, #osm-panel.is-open { display: block; }
+    #windy-panel.is-open, #mt-panel.is-open, #osm-panel.is-open {
+      display: flex;
+    }
 
     /** Sobreposição Windy (fundo) + Marine Traffic (frente) */
     #windy-panel.is-open { z-index: 1; }
     #mt-panel.is-open { z-index: 2; }
     #osm-panel.is-open { z-index: 3; }
     #embed-stack.sisnag-combo-active #windy-panel .embed-toolbar,
-    #embed-stack.sisnag-combo-active #mt-panel .embed-toolbar {
-      display: none;
+    #embed-stack.sisnag-combo-active #mt-panel .embed-toolbar,
+    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #windy-panel .embed-toolbar,
+    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #mt-panel .embed-toolbar {
+      display: none !important;
     }
-    #embed-stack.sisnag-combo-active #embed-overlay-toolbar {
+    #embed-stack.sisnag-combo-active #embed-overlay-toolbar,
+    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #embed-overlay-toolbar {
       display: flex;
     }
+    #embed-stack.sisnag-combo-active #windy-panel.is-open,
+    #embed-stack.sisnag-combo-active #mt-panel.is-open,
+    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #windy-panel,
+    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #mt-panel {
+      top: 48px;
+    }
+    #embed-stack:has(#windy-panel.is-open) .embed-toolbar,
+    #embed-stack:has(#mt-panel.is-open) .embed-toolbar,
+    #embed-stack:has(#osm-panel.is-open) .embed-toolbar,
+    #embed-stack.sisnag-combo-active #embed-overlay-toolbar {
+      padding-left: max(12px, var(--sisnag-dock-gutter));
+      padding-right: max(12px, var(--sisnag-dock-gutter-right));
+      box-sizing: border-box;
+    }
+
     #embed-overlay-toolbar {
       display: none;
       position: absolute;
@@ -268,10 +325,13 @@
       left: 0;
       right: 0;
       z-index: 10;
-      flex-wrap: wrap;
-      gap: 8px;
+      flex-wrap: nowrap;
+      gap: 6px;
       align-items: center;
-      padding: 10px 12px;
+      padding: 8px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
       background: rgba(15, 23, 42, 0.96);
       border-bottom: 1px solid #475569;
       color: #e2e8f0;
@@ -281,15 +341,6 @@
     #embed-overlay-toolbar .embed-overlay-title {
       font-weight: 700;
       margin-right: 4px;
-    }
-    #embed-overlay-toolbar button {
-      padding: 8px 12px;
-      border-radius: 8px;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      background: #1e293b;
-      color: #f8fafc;
     }
     #embed-overlay-toolbar button.primary { background: #1d4ed8; }
 
@@ -305,16 +356,17 @@
     }
 
     .embed-toolbar {
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+      position: relative;
+      flex-shrink: 0;
       z-index: 3;
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
+      flex-wrap: nowrap;
+      gap: 6px;
       align-items: center;
-      padding: 10px 12px;
+      padding: 8px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
       background: rgba(15, 23, 42, 0.94);
       border-bottom: 1px solid #334155;
       font-size: 13px;
@@ -323,22 +375,28 @@
     #windy-panel .embed-toolbar { border-bottom-color: #0369a1; background: rgba(12, 74, 110, 0.95); color: #e0f2fe; }
     #osm-panel .embed-toolbar { border-bottom-color: #0d9488; background: rgba(15, 118, 110, 0.95); color: #ccfbf1; }
 
-    .embed-toolbar button {
-      padding: 8px 12px;
+    .embed-toolbar button,
+    #embed-overlay-toolbar button {
+      flex-shrink: 0;
+      padding: 7px 10px;
       border-radius: 8px;
       border: none;
       cursor: pointer;
       font-weight: 600;
+      font-size: 12px;
       background: #1e293b;
       color: #f8fafc;
+      white-space: nowrap;
     }
     #windy-panel .embed-toolbar button { background: #075985; color: #f0f9ff; }
     #osm-panel .embed-toolbar button { background: #0f766e; color: #f0fdfa; }
 
     .embed-shell {
-      position: absolute;
-      inset: 0;
-      background: transparent;
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      background: #0b1220;
     }
     .embed-shell iframe {
       width: 100%;
@@ -419,7 +477,7 @@
 
     #nav-wp-sheet {
       position: fixed;
-      left: 10px;
+      left: max(10px, var(--sisnag-dock-gutter));
       bottom: calc(var(--sisnag-footer-chat-h) + env(safe-area-inset-bottom) + 10px);
       width: min(280px, 92vw);
       max-height: min(38vh, calc(100vh - var(--sisnag-footer-chat-h) - 80px));
@@ -824,7 +882,7 @@
   <script src="/js/navigationOverlay.js"></script>
   <script src="/js/navigationContext.js"></script>
   <script src="/js/nauticalReference.js"></script>
-  <script src="/js/embedMapSync.js"></script>
+  <script src="/js/embedMapSync.js?v=20260522-sync"></script>
   <script src="/js/embedOverlay.js"></script>
   <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>

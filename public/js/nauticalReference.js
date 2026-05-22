@@ -110,10 +110,19 @@
   global.__sisnagFixNauticalReference = function (map, opts) {
     if (!map) return state;
     opts = opts || {};
-    var c = map.getCenter();
-    var lat = c.lat;
-    var lng = c.lng;
-    var zoom = map.getZoom();
+    var lat;
+    var lng;
+    var zoom;
+    if (opts.forceCenter && Number.isFinite(opts.forceCenter.lat) && Number.isFinite(opts.forceCenter.lng)) {
+      lat = opts.forceCenter.lat;
+      lng = opts.forceCenter.lng;
+      zoom = Number.isFinite(opts.forceCenter.zoom) ? opts.forceCenter.zoom : map.getZoom();
+    } else {
+      var c = map.getCenter();
+      lat = c.lat;
+      lng = c.lng;
+      zoom = map.getZoom();
+    }
     var label = 'carta SISNAG';
     var source = 'leaflet-openseamap';
 
@@ -122,7 +131,9 @@
       source = 'openseamap-tiles';
     }
 
-    if (opts.snapSeamark !== false) {
+    var lockedCenter = !!(opts.forceCenter && Number.isFinite(opts.forceCenter.lat));
+
+    if (!lockedCenter && opts.snapSeamark !== false) {
       var snap = nearestSnap(lat, lng, 8);
       if (snap) {
         lat = snap.lat;
@@ -133,7 +144,7 @@
     }
 
     var gps = global.__sisnagLastKnownGps;
-    if (opts.preferGps && gps && Number.isFinite(gps.lat) && Number.isFinite(gps.lng)) {
+    if (!lockedCenter && opts.preferGps && gps && Number.isFinite(gps.lat) && Number.isFinite(gps.lng)) {
       var age = gps.ts ? Date.now() - gps.ts : 0;
       if (age < 600000) {
         lat = gps.lat;
@@ -143,7 +154,7 @@
       }
     }
 
-    if (opts.useRoute && typeof global.__sisnagCollectWaypoints === 'function') {
+    if (!lockedCenter && opts.useRoute && typeof global.__sisnagCollectWaypoints === 'function') {
       var wps = global.__sisnagCollectWaypoints();
       if (wps.length >= 2) {
         try {

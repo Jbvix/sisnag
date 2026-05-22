@@ -4,7 +4,11 @@
     preferCanvas: false,
     /** Em ecrãs retina, detectRetina nos tiles pede zoom+1 e pode deixar camadas em branco em alguns servidores. */
     zoomAnimation: true,
+    zoomControl: false,
   }).setView([-12.97, -38.48], 9);
+  L.control
+    .zoom({ position: 'bottomright' })
+    .addTo(map);
   window.__sisnagMainLeafletMap = map;
 
   /** Leaflet com contentor 100vh pode medir 0×0 no 1.º frame — força relayout para carregar tiles. */

@@ -1,11 +1,11 @@
 /* global L, window, document */
 /**
- * Windy / Marine Traffic / OpenSeaMap embed — mesmo ponto de referência náutico (WGS84).
+ * Windy / Marine Traffic / OpenSeaMap — mesmo centro WGS84 que o mapa Leaflet (#map).
+ * Waypoints (#map-vector-overlay) seguem o Leaflet em tempo real; iframes atualizam no fim do arrasto.
  */
 (function embedMapSync(global) {
   var debounceTimer = null;
   var lastSyncKey = '';
-  var dragStartCenter = null;
 
   function hasOpenEmbeds() {
     return (
@@ -13,24 +13,6 @@
       document.getElementById('mt-panel')?.classList.contains('is-open') ||
       document.getElementById('osm-panel')?.classList.contains('is-open')
     );
-  }
-
-  /** Repõe o deslocamento visual do embed-stack (CHARTER-VIEW-2 ExternalMapLayer). */
-  function resetEmbedDragTransform() {
-    dragStartCenter = null;
-    var stack = document.getElementById('embed-stack');
-    if (stack) stack.style.transform = '';
-  }
-
-  function updateEmbedDragTransform(map) {
-    if (!map || !dragStartCenter || !hasOpenEmbeds()) return;
-    var stack = document.getElementById('embed-stack');
-    if (!stack) return;
-    var pointNow = map.latLngToContainerPoint(dragStartCenter);
-    var centerScreen = map.getSize().divideBy(2);
-    var x = pointNow.x - centerScreen.x;
-    var y = pointNow.y - centerScreen.y;
-    stack.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
   }
 
   function embedShellSize() {
@@ -64,13 +46,15 @@
     return Math.max(2, Math.min(17, Math.round(z)));
   }
 
+  /** Windy embed clássico (mesmo formato CHARTER-VIEW-2 — melhor alinhamento que embed2). */
   function buildWindyUrl(lat, lng, zoom) {
-    var size = embedShellSize();
     var z = leafletZoomToWindy(zoom);
     var la = Number(lat).toFixed(5);
     var lo = Number(lng).toFixed(5);
     return (
-      'https://embed.windy.com/embed2.html?lat=' +
+      'https://embed.windy.com/embed.html?type=map&location=coordinates&zoom=' +
+      z +
+      '&lat=' +
       la +
       '&lon=' +
       lo +
@@ -78,13 +62,7 @@
       la +
       '&detailLon=' +
       lo +
-      '&width=' +
-      size.w +
-      '&height=' +
-      size.h +
-      '&zoom=' +
-      z +
-      '&level=surface&overlay=wind&product=ecmwf&metric=kmh&message=false'
+      '&metricWind=kt&metricTemp=%C2%B0C&message=false'
     );
   }
 
@@ -99,7 +77,7 @@
       y +
       '/centerx:' +
       x +
-      '/maptype:0/shownames:true/mmsi:0/shipid:0/fleet:/fleet_id:/vtypes:/showmenu:true/remember:false'
+      '/maptype:0/shownames:true/mmsi:0/shipid:0/fleet:/fleet_id:/vtypes:/showmenu:false/remember:false'
     );
   }
 
@@ -110,34 +88,54 @@
     return 'https://map.openseamap.org/?zoom=' + z + '&lat=' + la + '&lon=' + lo;
   }
 
-  /** Vista única: referência náutica fixada ou centro do mapa. */
-  function resolveView(map, opts) {
-    if (typeof global.__sisnagFixNauticalReference === 'function' && map) {
-      var ref = global.__sisnagFixNauticalReference(map, opts || {});
-      return { lat: ref.lat, lng: ref.lng, zoom: ref.zoom };
-    }
+  /** Sempre o centro visível do Leaflet — fonte única para waypoints + embeds. */
+  function viewFromMap(map) {
     var c = map.getCenter();
-    return { lat: c.lat, lng: c.lng, zoom: map.getZoom() };
+    return {
+      lat: c.lat,
+      lng: c.lng,
+      zoom: map.getZoom(),
+    };
   }
 
   function syncVectorToMain(map) {
     var v = global.__sisnagVectorMap;
     if (!v || !map) return;
     try {
-      v.setView(map.getCenter(), map.getZoom(), { animate: false, padding: [0, 0] });
+      var c = map.getCenter();
+      v.setView(c, map.getZoom(), { animate: false, padding: [0, 0] });
     } catch (e) {
       /* ignore */
     }
   }
 
-  function applySyncFromReference(map, force, refOpts) {
+  function publishRefMarker(map, view) {
+    if (typeof global.__sisnagFixNauticalReference !== 'function') return;
+    try {
+      global.__sisnagFixNauticalReference(map, {
+        snapSeamark: false,
+        useRoute: false,
+        preferGps: false,
+        forceCenter: view,
+      });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function applySyncFromMap(map, force) {
     if (!map) return;
-    resetEmbedDragTransform();
-    var view = resolveView(map, refOpts);
+
+    var stack = document.getElementById('embed-stack');
+    if (stack) stack.style.transform = '';
+
+    syncVectorToMain(map);
+
+    var view = viewFromMap(map);
     var key =
-      view.lat.toFixed(4) +
+      view.lat.toFixed(5) +
       ',' +
-      view.lng.toFixed(4) +
+      view.lng.toFixed(5) +
       ',' +
       view.zoom +
       ',' +
@@ -147,25 +145,28 @@
     if (!force && key === lastSyncKey) return;
     lastSyncKey = key;
 
+    publishRefMarker(map, view);
+
     var windyPanel = document.getElementById('windy-panel');
     var windyIframe = document.getElementById('windy-iframe');
     if (windyPanel && windyPanel.classList.contains('is-open') && windyIframe) {
-      windyIframe.src = buildWindyUrl(view.lat, view.lng, view.zoom);
+      var wUrl = buildWindyUrl(view.lat, view.lng, view.zoom);
+      if (windyIframe.src !== wUrl) windyIframe.src = wUrl;
     }
 
     var mtPanel = document.getElementById('mt-panel');
     var mtIframe = document.getElementById('mt-iframe');
     if (mtPanel && mtPanel.classList.contains('is-open') && mtIframe) {
-      mtIframe.src = buildMarineTrafficUrl(view.lat, view.lng, view.zoom);
+      var mUrl = buildMarineTrafficUrl(view.lat, view.lng, view.zoom);
+      if (mtIframe.src !== mUrl) mtIframe.src = mUrl;
     }
 
     var osmPanel = document.getElementById('osm-panel');
     var osmIframe = document.getElementById('osm-iframe');
     if (osmPanel && osmPanel.classList.contains('is-open') && osmIframe) {
-      osmIframe.src = buildOpenSeaMapUrl(view.lat, view.lng, view.zoom);
+      var oUrl = buildOpenSeaMapUrl(view.lat, view.lng, view.zoom);
+      if (osmIframe.src !== oUrl) osmIframe.src = oUrl;
     }
-
-    syncVectorToMain(map);
   }
 
   global.__sisnagSetEmbedDriveMode = function (active) {
@@ -186,14 +187,13 @@
     }
   };
 
-  function runAfterMapSettled(map, force, refOpts) {
+  function runAfterMapSettled(map, force) {
     try {
       map.invalidateSize(false);
     } catch (e) {
       /* ignore */
     }
-    syncVectorToMain(map);
-    applySyncFromReference(map, force, refOpts);
+    applySyncFromMap(map, force);
   }
 
   global.__sisnagSyncEmbedsToRoute = function (map) {
@@ -204,12 +204,10 @@
     var wps =
       typeof global.__sisnagCollectWaypoints === 'function' ? global.__sisnagCollectWaypoints() : [];
 
-    var refOpts = { useRoute: true, snapSeamark: true };
-
-    function done() {
+    function finish() {
       setTimeout(function () {
-        runAfterMapSettled(map, true, refOpts);
-      }, 120);
+        runAfterMapSettled(map, true);
+      }, 150);
     }
 
     if (wps.length >= 2) {
@@ -219,26 +217,30 @@
             return [w.lat, w.lng];
           }),
         );
-        map.once('moveend', done);
+        map.once('moveend', finish);
         map.fitBounds(bounds, { padding: [48, 48], maxZoom: 11, animate: false });
-        setTimeout(done, 400);
+        setTimeout(finish, 500);
         return;
       } catch (e) {
         /* ignore */
       }
+    } else if (wps.length === 1) {
+      map.setView([wps[0].lat, wps[0].lng], 11, { animate: false });
+      finish();
+      return;
     }
-    done();
+    finish();
   };
 
   global.__sisnagSyncEmbedsToMap = function (map) {
-    applySyncFromReference(map, false, { snapSeamark: false });
+    applySyncFromMap(map, false);
   };
 
   global.__sisnagDebouncedEmbedSync = function (map) {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
       global.__sisnagSyncEmbedsToMap(map);
-    }, 450);
+    }, 280);
   };
 
   global.__sisnagBuildWindyUrl = buildWindyUrl;
@@ -250,35 +252,17 @@
     map.__sisnagEmbedListeners = true;
 
     function onMapChange() {
+      syncVectorToMain(map);
       if (!hasOpenEmbeds()) return;
       global.__sisnagDebouncedEmbedSync(map);
     }
 
-    function onEmbedMoveStart() {
-      if (!hasOpenEmbeds()) return;
-      dragStartCenter = map.getCenter();
-    }
-
-    function onEmbedMove() {
-      updateEmbedDragTransform(map);
-    }
-
-    function onEmbedMoveEnd() {
-      resetEmbedDragTransform();
-      onMapChange();
-    }
-
-    function onEmbedZoomEnd() {
-      resetEmbedDragTransform();
-      onMapChange();
-    }
-
-    map.on('movestart', onEmbedMoveStart);
-    map.on('move', onEmbedMove);
-    map.on('moveend', onEmbedMoveEnd);
-    map.on('zoomend', onEmbedZoomEnd);
+    map.on('move', function () {
+      syncVectorToMain(map);
+    });
+    map.on('moveend', onMapChange);
+    map.on('zoomend', onMapChange);
     window.addEventListener('resize', function () {
-      resetEmbedDragTransform();
       lastSyncKey = '';
       onMapChange();
     });
