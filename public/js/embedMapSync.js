@@ -1,7 +1,6 @@
 /* global L, window, document */
 /**
- * Windy / Marine Traffic seguem o mapa Leaflet (waypoints).
- * O iframe não recebe arrasto por defeito — só o mapa SISNAG comanda centro/zoom.
+ * Windy / Marine Traffic / OpenSeaMap embed — mesmo ponto de referência náutico (WGS84).
  */
 (function embedMapSync(global) {
   var debounceTimer = null;
@@ -9,7 +8,7 @@
 
   function embedShellSize() {
     var shell = document.querySelector(
-      '#windy-panel.is-open .embed-shell, #mt-panel.is-open .embed-shell',
+      '#windy-panel.is-open .embed-shell, #mt-panel.is-open .embed-shell, #osm-panel.is-open .embed-shell',
     );
     if (shell) {
       var r = shell.getBoundingClientRect();
@@ -36,15 +35,6 @@
   function leafletZoomToMarineTraffic(leafletZoom) {
     var z = Number(leafletZoom) || 9;
     return Math.max(2, Math.min(17, Math.round(z)));
-  }
-
-  function viewFromMap(map) {
-    var c = map.getCenter();
-    return {
-      lat: c.lat,
-      lng: c.lng,
-      zoom: map.getZoom(),
-    };
   }
 
   function buildWindyUrl(lat, lng, zoom) {
@@ -86,6 +76,23 @@
     );
   }
 
+  function buildOpenSeaMapUrl(lat, lng, zoom) {
+    var z = Math.max(3, Math.min(18, Math.round(Number(zoom) || 9)));
+    var la = Number(lat).toFixed(5);
+    var lo = Number(lng).toFixed(5);
+    return 'https://map.openseamap.org/?zoom=' + z + '&lat=' + la + '&lon=' + lo;
+  }
+
+  /** Vista única: referência náutica fixada ou centro do mapa. */
+  function resolveView(map, opts) {
+    if (typeof global.__sisnagFixNauticalReference === 'function' && map) {
+      var ref = global.__sisnagFixNauticalReference(map, opts || {});
+      return { lat: ref.lat, lng: ref.lng, zoom: ref.zoom };
+    }
+    var c = map.getCenter();
+    return { lat: c.lat, lng: c.lng, zoom: map.getZoom() };
+  }
+
   function syncVectorToMain(map) {
     var v = global.__sisnagVectorMap;
     if (!v || !map) return;
@@ -96,9 +103,9 @@
     }
   }
 
-  function applySyncFromMap(map, force) {
+  function applySyncFromReference(map, force, refOpts) {
     if (!map) return;
-    var view = viewFromMap(map);
+    var view = resolveView(map, refOpts);
     var key =
       view.lat.toFixed(4) +
       ',' +
@@ -124,10 +131,15 @@
       mtIframe.src = buildMarineTrafficUrl(view.lat, view.lng, view.zoom);
     }
 
+    var osmPanel = document.getElementById('osm-panel');
+    var osmIframe = document.getElementById('osm-iframe');
+    if (osmPanel && osmPanel.classList.contains('is-open') && osmIframe) {
+      osmIframe.src = buildOpenSeaMapUrl(view.lat, view.lng, view.zoom);
+    }
+
     syncVectorToMain(map);
   }
 
-  /** Modo condução: mapa Leaflet manda; iframe só desenha meteo/AIS por cima. */
   global.__sisnagSetEmbedDriveMode = function (active) {
     var stack = document.getElementById('embed-stack');
     var chk = document.getElementById('sisnag-embed-click-through');
@@ -146,14 +158,14 @@
     }
   };
 
-  function runAfterMapSettled(map, force) {
+  function runAfterMapSettled(map, force, refOpts) {
     try {
       map.invalidateSize(false);
     } catch (e) {
       /* ignore */
     }
     syncVectorToMain(map);
-    applySyncFromMap(map, force);
+    applySyncFromReference(map, force, refOpts);
   }
 
   global.__sisnagSyncEmbedsToRoute = function (map) {
@@ -164,9 +176,11 @@
     var wps =
       typeof global.__sisnagCollectWaypoints === 'function' ? global.__sisnagCollectWaypoints() : [];
 
+    var refOpts = { useRoute: true, snapSeamark: true };
+
     function done() {
       setTimeout(function () {
-        runAfterMapSettled(map, true);
+        runAfterMapSettled(map, true, refOpts);
       }, 120);
     }
 
@@ -189,7 +203,7 @@
   };
 
   global.__sisnagSyncEmbedsToMap = function (map) {
-    applySyncFromMap(map, false);
+    applySyncFromReference(map, false, { snapSeamark: false });
   };
 
   global.__sisnagDebouncedEmbedSync = function (map) {
@@ -201,6 +215,7 @@
 
   global.__sisnagBuildWindyUrl = buildWindyUrl;
   global.__sisnagBuildMarineTrafficUrl = buildMarineTrafficUrl;
+  global.__sisnagBuildOpenSeaMapUrl = buildOpenSeaMapUrl;
 
   global.__sisnagAttachEmbedMapListeners = function (map) {
     if (!map || map.__sisnagEmbedListeners) return;
@@ -208,7 +223,8 @@
     function onMapChange() {
       var windyOpen = document.getElementById('windy-panel')?.classList.contains('is-open');
       var mtOpen = document.getElementById('mt-panel')?.classList.contains('is-open');
-      if (!windyOpen && !mtOpen) return;
+      var osmOpen = document.getElementById('osm-panel')?.classList.contains('is-open');
+      if (!windyOpen && !mtOpen && !osmOpen) return;
       global.__sisnagDebouncedEmbedSync(map);
     }
     map.on('moveend', onMapChange);

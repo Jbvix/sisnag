@@ -237,6 +237,10 @@
           <button type="button" class="sisnag-hb-close" id="sisnag-hb-close" aria-label="Fechar">✕</button>
         </div>
         <div class="sisnag-layers-body">
+          <p class="sisnag-layers-hint">Referência única (OpenSeaMap + Windy + MT)</p>
+          <p class="sisnag-layers-hint" style="font-size:11px;color:#64748b;margin-top:0;">
+            O centro da carta SISNAG (tiles OpenSeaMap) fixa a mesma lat/lon/zoom nos três serviços. Marcador âmbar = ponto de referência.
+          </p>
           <p class="sisnag-layers-hint">Sobreposição meteo + AIS (recomendado)</p>
           <button type="button" class="sisnag-panel-btn sisnag-panel-btn--primary" id="sisnag-open-windy-mt">🌬️ + 🚢 Windy e Marine Traffic</button>
           <label class="sisnag-row"><input type="checkbox" id="sisnag-layer-windy" checked /> Camada Windy (fundo)</label>
@@ -406,6 +410,10 @@
     global.__sisnagRefreshOsmOverlays = function () {
       if (overlayState.seamark) syncVectorMirror('seamark', true);
       if (overlayState.depth) syncVectorMirror('depth', true);
+    };
+
+    global.__sisnagSeamarkLayerActive = function () {
+      return overlayState.seamark;
     };
 
     root.querySelector('#sisnag-open-windy-mt').addEventListener('click', function () {

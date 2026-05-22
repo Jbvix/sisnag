@@ -22,6 +22,10 @@
 
     function syncIframeFromMap() {
       if (!iframe || !map) return;
+      if (typeof global.__sisnagSyncEmbedsToMap === 'function') {
+        global.__sisnagSyncEmbedsToMap(map);
+        return;
+      }
       const c = map.getCenter();
       iframe.src = buildOpenSeaMapUrl(c.lat, c.lng, map.getZoom());
     }
@@ -30,7 +34,14 @@
       if (!panel) return;
       panel.classList.add('is-open');
       syncIframeFromMap();
-      setStatus('OpenSeaMap: carta náutica (balizagem). Feche para voltar ao mapa SISNAG.');
+      if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
+        global.__sisnagSyncEmbedsToRoute(map);
+      }
+      setStatus(
+        (typeof global.__sisnagFormatNauticalReference === 'function'
+          ? global.__sisnagFormatNauticalReference()
+          : 'OpenSeaMap') + ' — Windy/MT usam a mesma referência.',
+      );
       if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
     }
 
