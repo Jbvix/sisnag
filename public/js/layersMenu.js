@@ -12,6 +12,9 @@
       (osm && osm.classList.contains('is-open'));
     if (open) stack.classList.add('has-open-pointer');
     else stack.classList.remove('has-open-pointer');
+    if (typeof global.__sisnagRefreshEmbedCombo === 'function') {
+      global.__sisnagRefreshEmbedCombo();
+    }
   }
 
   global.__sisnagRefreshEmbedStack = refreshEmbedStack;
@@ -234,20 +237,24 @@
           <button type="button" class="sisnag-hb-close" id="sisnag-hb-close" aria-label="Fechar">✕</button>
         </div>
         <div class="sisnag-layers-body">
-          <p class="sisnag-layers-hint">Painéis (ecrã completo + transparência)</p>
+          <p class="sisnag-layers-hint">Sobreposição meteo + AIS (recomendado)</p>
+          <button type="button" class="sisnag-panel-btn sisnag-panel-btn--primary" id="sisnag-open-windy-mt">🌬️ + 🚢 Windy e Marine Traffic</button>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-layer-windy" checked /> Camada Windy (fundo)</label>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-layer-mt" checked /> Camada Marine Traffic (frente)</label>
           <label class="sisnag-slider-row">
-            Opacidade Windy
-            <input type="range" id="sisnag-windy-op" min="25" max="100" value="82" />
+            Opacidade Windy (fundo)
+            <input type="range" id="sisnag-windy-op" min="25" max="100" value="70" />
           </label>
           <label class="sisnag-slider-row">
-            Opacidade Marine Traffic
-            <input type="range" id="sisnag-mt-op" min="25" max="100" value="82" />
+            Opacidade Marine Traffic (frente)
+            <input type="range" id="sisnag-mt-op" min="25" max="100" value="88" />
           </label>
           <label class="sisnag-slider-row">
             Opacidade OpenSeaMap
             <input type="range" id="sisnag-osm-op" min="50" max="100" value="92" />
           </label>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-click-through" /> Cliques através (mover o mapa/derrota por baixo do Windy/MT — overlays seguem ao soltar)</label>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-click-through" checked /> Mapa comanda (recomendado) — arrastar move a derrota; Windy/MT seguem</label>
+          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-touch-windy" /> Permitir tocar no Windy/MT (linha de tempo — pode desalinhar)</label>
 
           <p class="sisnag-layers-hint">Mapa base</p>
           <label class="sisnag-row"><input type="radio" name="sisnag-base" value="carto" checked /> Ruas (CARTO / OSM)</label>
@@ -260,10 +267,10 @@
           <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" checked /> Balizagem OpenSeaMap</label>
           <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-depth" /> Batimetria OpenSeaMap</label>
 
-          <p class="sisnag-layers-hint">Painéis (ecrã completo, como Windy)</p>
+          <p class="sisnag-layers-hint">Outros painéis</p>
           <button type="button" class="sisnag-panel-btn" id="sisnag-open-osm">🗺️ OpenSeaMap (carta completa)</button>
-          <button type="button" class="sisnag-panel-btn" id="sisnag-open-windy">🌬️ Windy (meteo)</button>
-          <button type="button" class="sisnag-panel-btn" id="sisnag-open-mt">🚢 Marine Traffic</button>
+          <button type="button" class="sisnag-panel-btn" id="sisnag-open-windy">🌬️ Só Windy</button>
+          <button type="button" class="sisnag-panel-btn" id="sisnag-open-mt">🚢 Só Marine Traffic</button>
         </div>
       </aside>
     `;
@@ -285,12 +292,35 @@
     var windyOp = root.querySelector('#sisnag-windy-op');
     var mtOp = root.querySelector('#sisnag-mt-op');
     var osmOp = root.querySelector('#sisnag-osm-op');
+    document.documentElement.style.setProperty('--sisnag-windy-opacity', Number(windyOp.value) / 100);
+    document.documentElement.style.setProperty('--sisnag-mt-opacity', Number(mtOp.value) / 100);
     windyOp.addEventListener('input', function () {
       document.documentElement.style.setProperty('--sisnag-windy-opacity', Number(windyOp.value) / 100);
     });
     mtOp.addEventListener('input', function () {
       document.documentElement.style.setProperty('--sisnag-mt-opacity', Number(mtOp.value) / 100);
     });
+
+    var chkLayerWindy = root.querySelector('#sisnag-layer-windy');
+    var chkLayerMt = root.querySelector('#sisnag-layer-mt');
+    function applyLayerToggles() {
+      if (windyPanel && chkLayerWindy) {
+        if (chkLayerWindy.checked) windyPanel.classList.add('is-open');
+        else windyPanel.classList.remove('is-open');
+      }
+      var mtPanelEl = document.getElementById('mt-panel');
+      if (mtPanelEl && chkLayerMt) {
+        if (chkLayerMt.checked) mtPanelEl.classList.add('is-open');
+        else mtPanelEl.classList.remove('is-open');
+      }
+      refreshEmbedStack();
+      updateEmbedPointerMode();
+      if (map && typeof global.__sisnagSyncEmbedsToMap === 'function') {
+        global.__sisnagSyncEmbedsToMap(map);
+      }
+    }
+    if (chkLayerWindy) chkLayerWindy.addEventListener('change', applyLayerToggles);
+    if (chkLayerMt) chkLayerMt.addEventListener('change', applyLayerToggles);
     if (osmOp) {
       document.documentElement.style.setProperty('--sisnag-osm-opacity', Number(osmOp.value) / 100);
       osmOp.addEventListener('input', function () {
@@ -298,11 +328,36 @@
       });
     }
 
-    root.querySelector('#sisnag-embed-click-through').addEventListener('change', function (ev) {
+    function updateEmbedPointerMode() {
       if (!embedStack) return;
-      if (ev.target.checked) embedStack.classList.add('embed-click-through');
-      else embedStack.classList.remove('embed-click-through');
-    });
+      var drive = document.getElementById('sisnag-embed-click-through');
+      var touch = document.getElementById('sisnag-embed-touch-windy');
+      var driveOn = !drive || drive.checked;
+      var touchOn = touch && touch.checked;
+      if (driveOn && !touchOn) {
+        embedStack.classList.add('embed-click-through');
+        embedStack.classList.remove('sisnag-allow-embed-touch');
+        document.body.classList.add('sisnag-embed-drive');
+      } else {
+        embedStack.classList.remove('embed-click-through');
+        if (touchOn) embedStack.classList.add('sisnag-allow-embed-touch');
+        else embedStack.classList.remove('sisnag-allow-embed-touch');
+        if (!document.getElementById('windy-panel')?.classList.contains('is-open') &&
+            !document.getElementById('mt-panel')?.classList.contains('is-open')) {
+          document.body.classList.remove('sisnag-embed-drive');
+        }
+      }
+    }
+
+    var chkDrive = root.querySelector('#sisnag-embed-click-through');
+    var chkTouch = root.querySelector('#sisnag-embed-touch-windy');
+    if (chkDrive) chkDrive.addEventListener('change', updateEmbedPointerMode);
+    if (chkTouch) {
+      chkTouch.addEventListener('change', function () {
+        if (chkTouch.checked && chkDrive) chkDrive.checked = false;
+        updateEmbedPointerMode();
+      });
+    }
 
     var drawer = root.querySelector('#sisnag-layers-drawer');
     var backdrop = root.querySelector('#sisnag-layers-backdrop');
@@ -353,35 +408,48 @@
       if (overlayState.depth) syncVectorMirror('depth', true);
     };
 
+    root.querySelector('#sisnag-open-windy-mt').addEventListener('click', function () {
+      closeDrawer();
+      if (chkLayerWindy) chkLayerWindy.checked = true;
+      if (chkLayerMt) chkLayerMt.checked = true;
+      if (typeof global.__sisnagOpenWindyMtOverlay === 'function') {
+        global.__sisnagOpenWindyMtOverlay(map);
+      }
+      updateEmbedPointerMode();
+    });
+
     root.querySelector('#sisnag-open-windy').addEventListener('click', function () {
       closeDrawer();
-      if (windyPanel) {
-        windyPanel.classList.add('is-open');
-        refreshEmbedStack();
-        setTimeout(function () {
-          if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
-            global.__sisnagSyncEmbedsToRoute(map);
-          }
-        }, 80);
-      }
+      if (chkLayerWindy) chkLayerWindy.checked = true;
+      if (chkLayerMt) chkLayerMt.checked = false;
+      if (windyPanel) windyPanel.classList.add('is-open');
+      var mtPanel = document.getElementById('mt-panel');
+      if (mtPanel) mtPanel.classList.remove('is-open');
+      refreshEmbedStack();
+      updateEmbedPointerMode();
+      setTimeout(function () {
+        if (typeof global.__sisnagSyncEmbedsToRoute === 'function') global.__sisnagSyncEmbedsToRoute(map);
+      }, 100);
     });
 
     root.querySelector('#sisnag-open-mt').addEventListener('click', function () {
       closeDrawer();
-      if (typeof global.openMarineTrafficPanel === 'function') {
-        global.openMarineTrafficPanel();
-      }
+      if (chkLayerWindy) chkLayerWindy.checked = false;
+      if (chkLayerMt) chkLayerMt.checked = true;
+      if (windyPanel) windyPanel.classList.remove('is-open');
+      if (typeof global.openMarineTrafficPanel === 'function') global.openMarineTrafficPanel();
+      updateEmbedPointerMode();
     });
 
     root.querySelector('#sisnag-open-osm').addEventListener('click', function () {
       closeDrawer();
-      if (typeof global.openOpenSeaMapPanel === 'function') {
-        global.openOpenSeaMapPanel();
-      }
+      if (typeof global.__sisnagCloseWindyMtOverlays === 'function') global.__sisnagCloseWindyMtOverlays();
+      if (typeof global.openOpenSeaMapPanel === 'function') global.openOpenSeaMapPanel();
     });
 
     function closeWindy() {
       windyPanel.classList.remove('is-open');
+      if (chkLayerWindy) chkLayerWindy.checked = false;
       refreshEmbedStack();
     }
 
@@ -397,15 +465,10 @@
     }
 
     global.openWindyPanel = function () {
-      if (windyPanel) {
-        windyPanel.classList.add('is-open');
-        refreshEmbedStack();
-        setTimeout(function () {
-          if (typeof global.__sisnagSyncEmbedsToRoute === 'function') {
-            global.__sisnagSyncEmbedsToRoute(map);
-          }
-        }, 80);
+      if (typeof global.__sisnagOpenWindyMtOverlay === 'function') {
+        global.__sisnagOpenWindyMtOverlay(map);
       }
+      updateEmbedPointerMode();
     };
 
     map.whenReady(function () {

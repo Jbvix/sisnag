@@ -43,6 +43,10 @@
     window.initMarineTrafficEmbed(map, socket);
   }
 
+  if (typeof window.__sisnagInitEmbedOverlayUi === 'function') {
+    window.__sisnagInitEmbedOverlayUi(map, socket);
+  }
+
   if (typeof window.initOpenSeaMapEmbed === 'function') {
     window.initOpenSeaMapEmbed(map);
   }

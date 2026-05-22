@@ -1,6 +1,7 @@
 /* global L, window, document */
 /**
- * Sincroniza centro/zoom dos iframes Windy e Marine Traffic com o mapa Leaflet e a derrota.
+ * Windy / Marine Traffic seguem o mapa Leaflet (waypoints).
+ * O iframe não recebe arrasto por defeito — só o mapa SISNAG comanda centro/zoom.
  */
 (function embedMapSync(global) {
   var debounceTimer = null;
@@ -13,10 +14,7 @@
     if (shell) {
       var r = shell.getBoundingClientRect();
       if (r.width > 100 && r.height > 100) {
-        return {
-          w: Math.round(r.width),
-          h: Math.round(r.height),
-        };
+        return { w: Math.round(r.width), h: Math.round(r.height) };
       }
     }
     var mapEl = document.getElementById('map');
@@ -27,20 +25,12 @@
         h: Math.max(300, Math.round(mr.height)),
       };
     }
-    return {
-      w: Math.min(1650, Math.max(520, Math.round(window.innerWidth || 1280))),
-      h: Math.min(1200, Math.max(400, Math.round(window.innerHeight * 0.55 || 600))),
-    };
+    return { w: 800, h: 500 };
   }
 
-  /**
-   * Windy embed usa escala diferente do Leaflet — aproximação empírica.
-   * @param {number} leafletZoom
-   */
   function leafletZoomToWindy(leafletZoom) {
     var z = Number(leafletZoom) || 9;
-    var windy = Math.round(z - 1);
-    return Math.max(3, Math.min(11, windy));
+    return Math.max(3, Math.min(11, Math.round(z)));
   }
 
   function leafletZoomToMarineTraffic(leafletZoom) {
@@ -48,42 +38,12 @@
     return Math.max(2, Math.min(17, Math.round(z)));
   }
 
-  /**
-   * Centro/zoom alinhados à derrota (waypoints) ou ao mapa actual.
-   * @param {L.Map} map
-   */
-  function getSyncView(map) {
-    if (!map) return { lat: 0, lng: 0, zoom: 9 };
-    var wps =
-      typeof global.__sisnagCollectWaypoints === 'function' ? global.__sisnagCollectWaypoints() : [];
-    if (wps.length >= 2) {
-      try {
-        var bounds = L.latLngBounds(
-          wps.map(function (w) {
-            return [w.lat, w.lng];
-          }),
-        );
-        var c = bounds.getCenter();
-        var z = map.getBoundsZoom(bounds, { padding: [40, 40], maxZoom: 12 });
-        return { lat: c.lat, lng: c.lng, zoom: z, source: 'route' };
-      } catch (e) {
-        /* fallback */
-      }
-    }
-    if (wps.length === 1) {
-      return {
-        lat: wps[0].lat,
-        lng: wps[0].lng,
-        zoom: Math.max(map.getZoom(), 10),
-        source: 'waypoint',
-      };
-    }
-    var center = map.getCenter();
+  function viewFromMap(map) {
+    var c = map.getCenter();
     return {
-      lat: center.lat,
-      lng: center.lng,
+      lat: c.lat,
+      lng: c.lng,
       zoom: map.getZoom(),
-      source: 'map',
     };
   }
 
@@ -126,8 +86,20 @@
     );
   }
 
-  function syncKey(view) {
-    return (
+  function syncVectorToMain(map) {
+    var v = global.__sisnagVectorMap;
+    if (!v || !map) return;
+    try {
+      v.setView(map.getCenter(), map.getZoom(), { animate: false, padding: [0, 0] });
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function applySyncFromMap(map, force) {
+    if (!map) return;
+    var view = viewFromMap(map);
+    var key =
       view.lat.toFixed(4) +
       ',' +
       view.lng.toFixed(4) +
@@ -136,24 +108,9 @@
       ',' +
       embedShellSize().w +
       'x' +
-      embedShellSize().h
-    );
-  }
-
-  function applySync(map, opts) {
-    if (!map) return;
-    var force = opts && opts.force;
-    var useRoute = opts && opts.useRoute;
-    var view = useRoute ? getSyncView(map) : getSyncView(map);
-    if (!useRoute && map) {
-      var c = map.getCenter();
-      view = { lat: c.lat, lng: c.lng, zoom: map.getZoom(), source: 'map' };
-    }
-    if (!force) {
-      var key = syncKey(view);
-      if (key === lastSyncKey) return;
-      lastSyncKey = key;
-    }
+      embedShellSize().h;
+    if (!force && key === lastSyncKey) return;
+    lastSyncKey = key;
 
     var windyPanel = document.getElementById('windy-panel');
     var windyIframe = document.getElementById('windy-iframe');
@@ -166,13 +123,53 @@
     if (mtPanel && mtPanel.classList.contains('is-open') && mtIframe) {
       mtIframe.src = buildMarineTrafficUrl(view.lat, view.lng, view.zoom);
     }
+
+    syncVectorToMain(map);
   }
 
-  /** Ao abrir painel: enquadrar derrota se existir waypoints. */
+  /** Modo condução: mapa Leaflet manda; iframe só desenha meteo/AIS por cima. */
+  global.__sisnagSetEmbedDriveMode = function (active) {
+    var stack = document.getElementById('embed-stack');
+    var chk = document.getElementById('sisnag-embed-click-through');
+    if (active) {
+      document.body.classList.add('sisnag-embed-drive');
+      if (stack) stack.classList.add('embed-click-through');
+      if (chk) chk.checked = true;
+    } else {
+      var windyOpen = document.getElementById('windy-panel')?.classList.contains('is-open');
+      var mtOpen = document.getElementById('mt-panel')?.classList.contains('is-open');
+      if (!windyOpen && !mtOpen) {
+        document.body.classList.remove('sisnag-embed-drive');
+        if (stack) stack.classList.remove('embed-click-through');
+        if (chk) chk.checked = false;
+      }
+    }
+  };
+
+  function runAfterMapSettled(map, force) {
+    try {
+      map.invalidateSize(false);
+    } catch (e) {
+      /* ignore */
+    }
+    syncVectorToMain(map);
+    applySyncFromMap(map, force);
+  }
+
   global.__sisnagSyncEmbedsToRoute = function (map) {
     if (!map) return;
+    global.__sisnagSetEmbedDriveMode(true);
+    lastSyncKey = '';
+
     var wps =
       typeof global.__sisnagCollectWaypoints === 'function' ? global.__sisnagCollectWaypoints() : [];
+
+    function done() {
+      setTimeout(function () {
+        runAfterMapSettled(map, true);
+      }, 120);
+    }
+
     if (wps.length >= 2) {
       try {
         var bounds = L.latLngBounds(
@@ -180,34 +177,30 @@
             return [w.lat, w.lng];
           }),
         );
-        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 12, animate: false });
-        if (typeof global.__sisnagMainMap !== 'undefined' && global.__sisnagVectorMap) {
-          var v = global.__sisnagVectorMap;
-          v.setView(map.getCenter(), map.getZoom(), { animate: false });
-        }
+        map.once('moveend', done);
+        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 11, animate: false });
+        setTimeout(done, 400);
+        return;
       } catch (e) {
         /* ignore */
       }
     }
-    lastSyncKey = '';
-    applySync(map, { force: true, useRoute: true });
+    done();
   };
 
-  /** Segue o mapa (pan/zoom) com debounce. */
   global.__sisnagSyncEmbedsToMap = function (map) {
-    applySync(map, { useRoute: false });
+    applySyncFromMap(map, false);
   };
 
   global.__sisnagDebouncedEmbedSync = function (map) {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
       global.__sisnagSyncEmbedsToMap(map);
-    }, 600);
+    }, 450);
   };
 
   global.__sisnagBuildWindyUrl = buildWindyUrl;
   global.__sisnagBuildMarineTrafficUrl = buildMarineTrafficUrl;
-  global.__sisnagGetEmbedSyncView = getSyncView;
 
   global.__sisnagAttachEmbedMapListeners = function (map) {
     if (!map || map.__sisnagEmbedListeners) return;

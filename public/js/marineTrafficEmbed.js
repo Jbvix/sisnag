@@ -24,9 +24,16 @@
     function openPanel() {
       if (!panel) return;
       panel.classList.add('is-open');
-      if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
-      setTimeout(syncIframeFromMap, 80);
-      setStatus('Marine Traffic sincronizado com a derrota. Mova o mapa ou use «Sincronizar derrota» se desalinhar.');
+      if (typeof global.__sisnagRefreshEmbedCombo === 'function') global.__sisnagRefreshEmbedCombo();
+      setTimeout(syncIframeFromMap, 120);
+      var combo =
+        document.getElementById('windy-panel')?.classList.contains('is-open') &&
+        panel.classList.contains('is-open');
+      setStatus(
+        combo
+          ? 'Windy + Marine Traffic sobrepostos. Arraste o mapa SISNAG; use opacidade no menu ☰.'
+          : 'Marine Traffic segue o mapa SISNAG. Arraste o mapa (não o iframe).',
+      );
     }
 
     global.openMarineTrafficPanel = openPanel;
@@ -37,7 +44,9 @@
     if (btnClose && panel) {
       btnClose.addEventListener('click', () => {
         panel.classList.remove('is-open');
-        if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
+        var chk = document.getElementById('sisnag-layer-mt');
+        if (chk) chk.checked = false;
+        if (typeof global.__sisnagRefreshEmbedCombo === 'function') global.__sisnagRefreshEmbedCombo();
       });
     }
     if (btnSync) btnSync.addEventListener('click', syncIframeFromMap);
