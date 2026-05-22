@@ -5,6 +5,33 @@
 (function embedMapSync(global) {
   var debounceTimer = null;
   var lastSyncKey = '';
+  var dragStartCenter = null;
+
+  function hasOpenEmbeds() {
+    return (
+      document.getElementById('windy-panel')?.classList.contains('is-open') ||
+      document.getElementById('mt-panel')?.classList.contains('is-open') ||
+      document.getElementById('osm-panel')?.classList.contains('is-open')
+    );
+  }
+
+  /** Repõe o deslocamento visual do embed-stack (CHARTER-VIEW-2 ExternalMapLayer). */
+  function resetEmbedDragTransform() {
+    dragStartCenter = null;
+    var stack = document.getElementById('embed-stack');
+    if (stack) stack.style.transform = '';
+  }
+
+  function updateEmbedDragTransform(map) {
+    if (!map || !dragStartCenter || !hasOpenEmbeds()) return;
+    var stack = document.getElementById('embed-stack');
+    if (!stack) return;
+    var pointNow = map.latLngToContainerPoint(dragStartCenter);
+    var centerScreen = map.getSize().divideBy(2);
+    var x = pointNow.x - centerScreen.x;
+    var y = pointNow.y - centerScreen.y;
+    stack.style.transform = 'translate3d(' + x + 'px, ' + y + 'px, 0)';
+  }
 
   function embedShellSize() {
     var shell = document.querySelector(
@@ -105,6 +132,7 @@
 
   function applySyncFromReference(map, force, refOpts) {
     if (!map) return;
+    resetEmbedDragTransform();
     var view = resolveView(map, refOpts);
     var key =
       view.lat.toFixed(4) +
@@ -220,16 +248,37 @@
   global.__sisnagAttachEmbedMapListeners = function (map) {
     if (!map || map.__sisnagEmbedListeners) return;
     map.__sisnagEmbedListeners = true;
+
     function onMapChange() {
-      var windyOpen = document.getElementById('windy-panel')?.classList.contains('is-open');
-      var mtOpen = document.getElementById('mt-panel')?.classList.contains('is-open');
-      var osmOpen = document.getElementById('osm-panel')?.classList.contains('is-open');
-      if (!windyOpen && !mtOpen && !osmOpen) return;
+      if (!hasOpenEmbeds()) return;
       global.__sisnagDebouncedEmbedSync(map);
     }
-    map.on('moveend', onMapChange);
-    map.on('zoomend', onMapChange);
+
+    function onEmbedMoveStart() {
+      if (!hasOpenEmbeds()) return;
+      dragStartCenter = map.getCenter();
+    }
+
+    function onEmbedMove() {
+      updateEmbedDragTransform(map);
+    }
+
+    function onEmbedMoveEnd() {
+      resetEmbedDragTransform();
+      onMapChange();
+    }
+
+    function onEmbedZoomEnd() {
+      resetEmbedDragTransform();
+      onMapChange();
+    }
+
+    map.on('movestart', onEmbedMoveStart);
+    map.on('move', onEmbedMove);
+    map.on('moveend', onEmbedMoveEnd);
+    map.on('zoomend', onEmbedZoomEnd);
     window.addEventListener('resize', function () {
+      resetEmbedDragTransform();
       lastSyncKey = '';
       onMapChange();
     });
