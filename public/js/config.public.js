@@ -1,2 +1,2 @@
-/* Valor predefinido (desenvolvimento local). No Netlify, o build sobrescreve via scripts/netlify-config.mjs */
-window.__SISNAG_API_ORIGIN__ = '';
+/* Gerado em build (Netlify). Não edite à mão em CI. */
+window.__SISNAG_API_ORIGIN__ = "";
