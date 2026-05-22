@@ -29,6 +29,17 @@
   global.__sisnagRefreshEmbedCombo = function () {
     var el = panels();
     if (!el.stack) return;
+    var anyOpen =
+      isWindyOpen() ||
+      isMtOpen() ||
+      !!(el.osm && el.osm.classList.contains('is-open'));
+    if (anyOpen) {
+      el.stack.classList.add('has-open-pointer');
+      el.stack.removeAttribute('aria-hidden');
+    } else {
+      el.stack.classList.remove('has-open-pointer');
+      el.stack.setAttribute('aria-hidden', 'true');
+    }
     el.stack.classList.toggle('sisnag-combo-active', isComboActive());
     if (isWindyOpen() || isMtOpen()) {
       if (typeof global.__sisnagSetEmbedDriveMode === 'function') {

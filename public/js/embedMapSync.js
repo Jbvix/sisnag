@@ -88,19 +88,17 @@
     return 'https://map.openseamap.org/?zoom=' + z + '&lat=' + la + '&lon=' + lo;
   }
 
-  /** Centro alinhado por cidades visíveis (+ derrota); fallback = centro Leaflet. */
-  function viewFromMap(map) {
-    if (typeof global.__sisnagCityAlignedView === 'function') {
-      return global.__sisnagCityAlignedView(map);
-    }
+  function viewFromLeafletCenter(map) {
     var c = map.getCenter();
     return { lat: c.lat, lng: c.lng, zoom: map.getZoom(), cities: [], source: 'map-center' };
   }
 
-  function applyCityLockToMap(map, view) {
-    if (typeof global.__sisnagApplyCityAlignedViewToMap === 'function') {
-      global.__sisnagApplyCityAlignedViewToMap(map, view);
+  /** Centro por cidades visíveis — só no botão «Alinhar cidades + derrota». */
+  function viewFromCities(map, useFitZoom) {
+    if (typeof global.__sisnagCityAlignedView === 'function') {
+      return global.__sisnagCityAlignedView(map, { useFitZoom: !!useFitZoom });
     }
+    return viewFromLeafletCenter(map);
   }
 
   function syncVectorToMain(map) {
@@ -134,18 +132,25 @@
     var stack = document.getElementById('embed-stack');
     if (stack) stack.style.transform = '';
 
-    var view = viewFromMap(map);
-    applyCityLockToMap(map, view);
+    var view = force ? viewFromCities(map, true) : viewFromLeafletCenter(map);
+
+    if (force && typeof global.__sisnagApplyCityAlignedViewToMap === 'function') {
+      global.__sisnagApplyCityAlignedViewToMap(map, view);
+      view = viewFromLeafletCenter(map);
+    }
+
     syncVectorToMain(map);
 
+    var windyZ = leafletZoomToWindy(view.zoom);
+    var mtZ = leafletZoomToMarineTraffic(view.zoom);
     var key =
-      view.lat.toFixed(5) +
+      view.lat.toFixed(4) +
       ',' +
-      view.lng.toFixed(5) +
+      view.lng.toFixed(4) +
       ',' +
-      view.zoom +
+      windyZ +
       ',' +
-      (view.cities ? view.cities.join('|') : '') +
+      mtZ +
       ',' +
       embedShellSize().w +
       'x' +
@@ -153,9 +158,11 @@
     if (!force && key === lastSyncKey) return;
     lastSyncKey = key;
 
-    publishRefMarker(map, view);
-    if (typeof global.__sisnagPublishCityAlignStatus === 'function') {
-      global.__sisnagPublishCityAlignStatus(view);
+    if (force) {
+      publishRefMarker(map, view);
+      if (typeof global.__sisnagPublishCityAlignStatus === 'function') {
+        global.__sisnagPublishCityAlignStatus(viewFromCities(map, false));
+      }
     }
     if (typeof global.__sisnagUpdateCityReferenceMarkers === 'function') {
       global.__sisnagUpdateCityReferenceMarkers(map);
@@ -259,7 +266,7 @@
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function () {
       global.__sisnagSyncEmbedsToMap(map);
-    }, 280);
+    }, 550);
   };
 
   global.__sisnagBuildWindyUrl = buildWindyUrl;

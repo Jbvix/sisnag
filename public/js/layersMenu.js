@@ -1,17 +1,6 @@
 /* global L, window, document */
 (function layersMenu(global) {
   function refreshEmbedStack() {
-    var stack = document.getElementById('embed-stack');
-    var windy = document.getElementById('windy-panel');
-    var mt = document.getElementById('mt-panel');
-    var osm = document.getElementById('osm-panel');
-    if (!stack) return;
-    var open =
-      (windy && windy.classList.contains('is-open')) ||
-      (mt && mt.classList.contains('is-open')) ||
-      (osm && osm.classList.contains('is-open'));
-    if (open) stack.classList.add('has-open-pointer');
-    else stack.classList.remove('has-open-pointer');
     if (typeof global.__sisnagRefreshEmbedCombo === 'function') {
       global.__sisnagRefreshEmbedCombo();
     }
@@ -239,7 +228,7 @@
         <div class="sisnag-layers-body">
           <p class="sisnag-layers-hint">Referência única (cidades + derrota)</p>
           <p class="sisnag-layers-hint" style="font-size:11px;color:#64748b;margin-top:0;">
-            Windy, Marine Traffic e waypoints usam o mesmo centro WGS84: média das cidades costeiras visíveis no ecrã (marcadores azuis). Toque ↻ Ref. carta + derrota para realinhar.
+            Arrasto move waypoints; ao soltar, Windy/MT seguem o centro do mapa. Toque ↻ Alinhar cidades + derrota para fixar por cidades visíveis (marcadores azuis). Avisos CORS/Hotjar no console vêm do site Marine Traffic ou extensões do browser — não bloqueiam o mapa.
           </p>
           <p class="sisnag-layers-hint">Sobreposição meteo + AIS (recomendado)</p>
           <button type="button" class="sisnag-panel-btn sisnag-panel-btn--primary" id="sisnag-open-windy-mt">🌬️ + 🚢 Windy e Marine Traffic</button>

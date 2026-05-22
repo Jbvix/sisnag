@@ -47,7 +47,8 @@
    * @param {L.Map} map
    * @returns {{ lat: number, lng: number, zoom: number, cities: string[], source: string }}
    */
-  global.__sisnagCityAlignedView = function (map) {
+  global.__sisnagCityAlignedView = function (map, opts) {
+    opts = opts || {};
     if (!map || typeof map.getBounds !== 'function') {
       return { lat: -12.97, lng: -38.48, zoom: 9, cities: [], source: 'fallback' };
     }
@@ -88,18 +89,18 @@
     var lng = lngSum / points.length;
     var zoom = map.getZoom();
 
-    try {
-      var bb = L.latLngBounds(
-        points.map(function (p) {
-          return [p.lat, p.lng];
-        }),
-      );
-      var fitZ = map.getBoundsZoom(bb, { padding: [56, 56], maxZoom: 11 });
-      if (Number.isFinite(fitZ)) {
-        zoom = Math.min(map.getZoom(), Math.max(4, fitZ));
+    if (opts.useFitZoom && points.length >= 2) {
+      try {
+        var bb = L.latLngBounds(
+          points.map(function (p) {
+            return [p.lat, p.lng];
+          }),
+        );
+        var fitZ = map.getBoundsZoom(bb, { padding: [56, 56], maxZoom: 11 });
+        if (Number.isFinite(fitZ)) zoom = Math.max(4, Math.min(11, fitZ));
+      } catch (e) {
+        /* ignore */
       }
-    } catch (e) {
-      /* ignore */
     }
 
     var source = 'cities';
@@ -118,11 +119,17 @@
 
   /** Aplica a mesma vista no Leaflet (waypoints seguem). */
   global.__sisnagApplyCityAlignedViewToMap = function (map, view) {
-    if (!map || !view) return;
+    if (!map || !view) return false;
     try {
+      var c = map.getCenter();
+      var z = map.getZoom();
+      var dLat = Math.abs(c.lat - view.lat);
+      var dLng = Math.abs(c.lng - view.lng);
+      if (dLat < 0.0008 && dLng < 0.0008 && z === view.zoom) return false;
       map.setView([view.lat, view.lng], view.zoom, { animate: false });
+      return true;
     } catch (e) {
-      /* ignore */
+      return false;
     }
   };
 
