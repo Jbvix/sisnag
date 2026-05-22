@@ -39,15 +39,11 @@
     }
   }
 
-  function attachChatResizeHandle(root) {
-    if (!root || root.querySelector('.sisnag-chat-resize-handle')) return;
-
-    var handle = document.createElement('button');
-    handle.type = 'button';
-    handle.className = 'sisnag-chat-resize-handle';
-    handle.setAttribute('aria-label', 'Arrastar para ajustar altura do copiloto e dar mais espaço ao mapa');
-    handle.title = 'Arrastar para redimensionar';
-    root.insertBefore(handle, root.firstChild);
+  function attachChatResizeHandle(root, handle) {
+    root = root || document.getElementById('chat');
+    handle = handle || document.getElementById('sisnag-chat-resize');
+    if (!root || !handle || handle.dataset.sisnagResizeBound === '1') return;
+    handle.dataset.sisnagResizeBound = '1';
 
     var dragging = false;
     var startY = 0;
@@ -96,7 +92,17 @@
     });
   }
 
+  function bootChatResize() {
+    attachChatResizeHandle(document.getElementById('chat'), document.getElementById('sisnag-chat-resize'));
+  }
+
   restoreChatFooterHeight();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootChatResize);
+  } else {
+    bootChatResize();
+  }
+
   window.addEventListener('resize', function () {
     try {
       var cur = parseInt(
@@ -144,19 +150,25 @@
     root.removeAttribute('hidden');
     root.style.display = 'flex';
     root.style.flexDirection = 'column';
-    root.innerHTML = '';
+    bootChatResize();
 
-    attachChatResizeHandle(root);
+    var body = document.getElementById('chat-body');
+    if (!body) {
+      body = document.createElement('div');
+      body.id = 'chat-body';
+      root.appendChild(body);
+    }
+    body.innerHTML = '';
 
     const header = document.createElement('div');
     header.className = 'sisnag-chat-head';
     header.textContent = 'Copiloto IA';
-    root.appendChild(header);
+    body.appendChild(header);
 
     const messages = document.createElement('div');
     messages.id = 'chat-messages';
     messages.className = 'sisnag-chat-messages';
-    root.appendChild(messages);
+    body.appendChild(messages);
 
     const form = document.createElement('div');
     form.className = 'sisnag-chat-form';
@@ -234,7 +246,7 @@
 
     form.appendChild(input);
     form.appendChild(btn);
-    root.appendChild(form);
+    body.appendChild(form);
 
     socket.on('sensor_broadcast', (p) => {
       if (p && p.type === 'gps' && p.data) {

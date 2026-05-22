@@ -573,32 +573,54 @@
       padding-bottom: env(safe-area-inset-bottom);
       box-sizing: border-box;
     }
+    #chat.sisnag-chat-footer[hidden] {
+      display: none !important;
+    }
     .sisnag-chat-resize-handle {
       flex-shrink: 0;
-      height: 18px;
+      width: 100%;
+      min-height: 32px;
       margin: 0;
-      padding: 6px 0 4px;
+      padding: 8px 14px 6px;
       cursor: ns-resize;
       touch-action: none;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 4px;
       border: none;
-      background: transparent;
+      border-bottom: 1px solid #cbd5e1;
+      background: linear-gradient(180deg, #e2e8f0 0%, #f1f5f9 100%);
       border-radius: 16px 16px 0 0;
+      color: #334155;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      -webkit-tap-highlight-color: transparent;
     }
-    .sisnag-chat-resize-handle::before {
-      content: '';
-      width: 44px;
-      height: 5px;
+    .sisnag-chat-resize-grip {
+      display: block;
+      width: 52px;
+      height: 6px;
       border-radius: 3px;
-      background: #94a3b8;
-      opacity: 0.85;
-      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
-    }
-    .sisnag-chat-resize-handle:hover::before,
-    .sisnag-chat-resize-handle:focus-visible::before {
       background: #64748b;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+    .sisnag-chat-resize-label {
+      line-height: 1.2;
+      pointer-events: none;
+    }
+    .sisnag-chat-resize-handle:hover,
+    .sisnag-chat-resize-handle:focus-visible {
+      background: linear-gradient(180deg, #cbd5e1 0%, #e2e8f0 100%);
+      outline: none;
+    }
+    #chat-body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
     }
     body.sisnag-chat-resizing {
       user-select: none;
@@ -781,7 +803,13 @@
     <div id="nav-wp-list"></div>
   </div>
 
-  <div id="chat" class="sisnag-chat-footer" hidden></div>
+  <div id="chat" class="sisnag-chat-footer" hidden>
+    <button type="button" id="sisnag-chat-resize" class="sisnag-chat-resize-handle" title="Arrastar para cima: mais mapa · para baixo: mais chat">
+      <span class="sisnag-chat-resize-grip" aria-hidden="true"></span>
+      <span class="sisnag-chat-resize-label">↕ Arrastar · mais mapa</span>
+    </button>
+    <div id="chat-body"></div>
+  </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
@@ -789,7 +817,7 @@
   <script src="/js/apiOrigin.js"></script>
   <script src="/js/config.public.js"></script>
   <script src="/js/sensors.js"></script>
-  <script src="/js/chat.js"></script>
+  <script src="/js/chat.js?v=20260521-resize"></script>
   <script src="/js/camera-upload.js"></script>
   <script src="/js/fuelPanel.js"></script>
   <script src="/js/routeStorage.js"></script>
