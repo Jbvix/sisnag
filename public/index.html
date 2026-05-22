@@ -457,6 +457,34 @@
       border: none;
       background: transparent;
     }
+    .sisnag-city-ref-icon {
+      border: none;
+      background: transparent;
+    }
+    .sisnag-city-ref-pin {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      pointer-events: none;
+    }
+    .sisnag-city-ref-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #fff;
+      box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
+      flex-shrink: 0;
+    }
+    .sisnag-city-ref-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #e0f2fe;
+      text-shadow: 0 1px 3px #000, 0 0 8px rgba(0, 0, 0, 0.8);
+      white-space: nowrap;
+      font-family: system-ui, sans-serif;
+    }
+
     .sisnag-wp-num {
       width: 30px;
       height: 30px;
@@ -751,7 +779,7 @@
   <div id="embed-stack" class="embed-stack embed-interact" aria-hidden="true">
     <div id="embed-overlay-toolbar" class="embed-overlay-toolbar" aria-label="Windy e Marine Traffic sobrepostos">
       <span class="embed-overlay-title">🌬️ Windy + 🚢 Marine Traffic</span>
-      <button type="button" id="overlay-sync" class="primary" title="Referência OpenSeaMap = derrota; Windy e MT iguais">↻ Ref. carta + derrota</button>
+      <button type="button" id="overlay-sync" class="primary" title="Alinha Windy e MT pelas cidades visíveis e pela derrota">↻ Alinhar cidades + derrota</button>
       <button type="button" id="overlay-close-all" title="Fechar ambas as camadas">✕ Fechar</button>
       <button type="button" id="overlay-mt-capture">📸 Captura → Grok</button>
       <button type="button" id="overlay-mt-refresh">🔔 Socket refresh</button>
@@ -882,7 +910,8 @@
   <script src="/js/navigationOverlay.js"></script>
   <script src="/js/navigationContext.js"></script>
   <script src="/js/nauticalReference.js"></script>
-  <script src="/js/embedMapSync.js?v=20260522-sync"></script>
+  <script src="/js/cityReferenceAlign.js"></script>
+  <script src="/js/embedMapSync.js?v=20260522-cities"></script>
   <script src="/js/embedOverlay.js"></script>
   <script src="/js/layersMenu.js"></script>
   <script src="/js/marineTrafficEmbed.js"></script>

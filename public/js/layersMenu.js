@@ -237,9 +237,9 @@
           <button type="button" class="sisnag-hb-close" id="sisnag-hb-close" aria-label="Fechar">✕</button>
         </div>
         <div class="sisnag-layers-body">
-          <p class="sisnag-layers-hint">Referência única (OpenSeaMap + Windy + MT)</p>
+          <p class="sisnag-layers-hint">Referência única (cidades + derrota)</p>
           <p class="sisnag-layers-hint" style="font-size:11px;color:#64748b;margin-top:0;">
-            O centro da carta SISNAG (tiles OpenSeaMap) fixa a mesma lat/lon/zoom nos três serviços. Marcador âmbar = ponto de referência.
+            Windy, Marine Traffic e waypoints usam o mesmo centro WGS84: média das cidades costeiras visíveis no ecrã (marcadores azuis). Toque ↻ Ref. carta + derrota para realinhar.
           </p>
           <p class="sisnag-layers-hint">Sobreposição meteo + AIS (recomendado)</p>
           <button type="button" class="sisnag-panel-btn sisnag-panel-btn--primary" id="sisnag-open-windy-mt">🌬️ + 🚢 Windy e Marine Traffic</button>

@@ -88,14 +88,19 @@
     return 'https://map.openseamap.org/?zoom=' + z + '&lat=' + la + '&lon=' + lo;
   }
 
-  /** Sempre o centro visível do Leaflet — fonte única para waypoints + embeds. */
+  /** Centro alinhado por cidades visíveis (+ derrota); fallback = centro Leaflet. */
   function viewFromMap(map) {
+    if (typeof global.__sisnagCityAlignedView === 'function') {
+      return global.__sisnagCityAlignedView(map);
+    }
     var c = map.getCenter();
-    return {
-      lat: c.lat,
-      lng: c.lng,
-      zoom: map.getZoom(),
-    };
+    return { lat: c.lat, lng: c.lng, zoom: map.getZoom(), cities: [], source: 'map-center' };
+  }
+
+  function applyCityLockToMap(map, view) {
+    if (typeof global.__sisnagApplyCityAlignedViewToMap === 'function') {
+      global.__sisnagApplyCityAlignedViewToMap(map, view);
+    }
   }
 
   function syncVectorToMain(map) {
@@ -129,15 +134,18 @@
     var stack = document.getElementById('embed-stack');
     if (stack) stack.style.transform = '';
 
+    var view = viewFromMap(map);
+    applyCityLockToMap(map, view);
     syncVectorToMain(map);
 
-    var view = viewFromMap(map);
     var key =
       view.lat.toFixed(5) +
       ',' +
       view.lng.toFixed(5) +
       ',' +
       view.zoom +
+      ',' +
+      (view.cities ? view.cities.join('|') : '') +
       ',' +
       embedShellSize().w +
       'x' +
@@ -146,6 +154,12 @@
     lastSyncKey = key;
 
     publishRefMarker(map, view);
+    if (typeof global.__sisnagPublishCityAlignStatus === 'function') {
+      global.__sisnagPublishCityAlignStatus(view);
+    }
+    if (typeof global.__sisnagUpdateCityReferenceMarkers === 'function') {
+      global.__sisnagUpdateCityReferenceMarkers(map);
+    }
 
     var windyPanel = document.getElementById('windy-panel');
     var windyIframe = document.getElementById('windy-iframe');
@@ -212,15 +226,20 @@
 
     if (wps.length >= 2) {
       try {
-        var bounds = L.latLngBounds(
-          wps.map(function (w) {
-            return [w.lat, w.lng];
-          }),
-        );
-        map.once('moveend', finish);
-        map.fitBounds(bounds, { padding: [48, 48], maxZoom: 11, animate: false });
-        setTimeout(finish, 500);
-        return;
+        var bounds =
+          typeof global.__sisnagBoundsForRouteAndCities === 'function'
+            ? global.__sisnagBoundsForRouteAndCities(wps)
+            : L.latLngBounds(
+                wps.map(function (w) {
+                  return [w.lat, w.lng];
+                }),
+              );
+        if (bounds) {
+          map.once('moveend', finish);
+          map.fitBounds(bounds, { padding: [56, 56], maxZoom: 11, animate: false });
+          setTimeout(finish, 500);
+          return;
+        }
       } catch (e) {
         /* ignore */
       }
@@ -252,13 +271,20 @@
     map.__sisnagEmbedListeners = true;
 
     function onMapChange() {
-      syncVectorToMain(map);
-      if (!hasOpenEmbeds()) return;
+      if (!hasOpenEmbeds()) {
+        if (typeof global.__sisnagUpdateCityReferenceMarkers === 'function') {
+          global.__sisnagUpdateCityReferenceMarkers(map);
+        }
+        return;
+      }
       global.__sisnagDebouncedEmbedSync(map);
     }
 
     map.on('move', function () {
       syncVectorToMain(map);
+      if (hasOpenEmbeds() && typeof global.__sisnagUpdateCityReferenceMarkers === 'function') {
+        global.__sisnagUpdateCityReferenceMarkers(map);
+      }
     });
     map.on('moveend', onMapChange);
     map.on('zoomend', onMapChange);
