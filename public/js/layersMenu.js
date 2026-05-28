@@ -26,6 +26,15 @@
       return L.tileLayer(url, Object.assign({}, tCommon, opts, { className: 'sisnag-base-' + id }));
     }
 
+    var baseTuglife = makeBase(
+      'tuglife',
+      'https://charts.tuglife.live/tiles/{z}/{x}/{y}.png',
+      {
+        maxZoom: 18,
+        attribution: '&copy; Marinha do Brasil / TugLife Charts',
+      },
+    );
+
     /** Ordem de arranque: CDNs que costumam funcionar em rede móvel / Starlink. */
     var baseCarto = makeBase(
       'carto',
@@ -46,7 +55,7 @@
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     });
 
-    var baseFallbackChain = [baseCarto, baseEsriStreet, osm];
+    var baseFallbackChain = [baseTuglife, baseCarto, baseEsriStreet, osm];
     var baseFailCount = 0;
     var fallbackIndex = 0;
 
@@ -129,9 +138,9 @@
       }, 50);
     }
 
-    var activeBase = baseCarto;
+    var activeBase = baseTuglife;
     activeBase.addTo(map);
-    setActiveBaseLabel('carto');
+    setActiveBaseLabel('tuglife');
 
     function tryNextBaseFallback() {
       fallbackIndex++;
@@ -233,11 +242,9 @@
           <label class="sisnag-row"><input type="radio" name="sisnag-map-view" value="osm" /> ⚓ Carta Náutica (OpenSeaMap)</label>
 
           <p class="sisnag-layers-hint">Mapa base (Mapa Padrão)</p>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="carto" checked /> Ruas (CARTO / OSM)</label>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="osm" /> Ruas (OSM direto)</label>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="satellite" /> Satélite (Esri)</label>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="topo" /> Relevo (OpenTopoMap)</label>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="ocean" /> Fundo oceânico (Esri)</label>
+          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="tuglife" checked /> ⚓ Cartas Náuticas (TugLife)</label>
+          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="carto" /> 🗺️ Ruas (CARTO / OSM)</label>
+          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="satellite" /> 🛰️ Satélite (Esri)</label>
 
           <p class="sisnag-layers-hint">Sobreposições (Mapa Padrão)</p>
           <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" checked /> Balizagem OpenSeaMap</label>
@@ -393,11 +400,9 @@
       radio.addEventListener('change', function () {
         if (!radio.checked) return;
         var v = radio.value;
-        if (v === 'osm') switchBase(osm, 'osm');
+        if (v === 'tuglife') switchBase(baseTuglife, 'tuglife');
         else if (v === 'carto') switchBase(baseCarto, 'carto');
         else if (v === 'satellite') switchBase(satellite, 'satellite');
-        else if (v === 'topo') switchBase(topo, 'topo');
-        else if (v === 'ocean') switchBase(ocean, 'ocean');
       });
     });
 
