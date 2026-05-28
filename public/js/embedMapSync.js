@@ -6,6 +6,8 @@
 (function embedMapSync(global) {
   var debounceTimer = null;
   var lastSyncKey = '';
+  var lastLoadedCenter = null;
+  var lastLoadedZoom = 9;
 
   function hasOpenEmbeds() {
     return (
@@ -126,11 +128,30 @@
     }
   }
 
+  function updateIframeTransform(map) {
+    var stack = document.getElementById('embed-stack');
+    if (!stack || !lastLoadedCenter) return;
+    try {
+      var currentPoint = map.latLngToContainerPoint(lastLoadedCenter);
+      var containerCenter = map.getSize().divideBy(2);
+      var dx = Math.round(currentPoint.x - containerCenter.x);
+      var dy = Math.round(currentPoint.y - containerCenter.y);
+      var scale = Math.pow(2, map.getZoom() - lastLoadedZoom);
+      stack.style.transformOrigin = '50% 50%';
+      stack.style.transform = 'translate(' + dx + 'px, ' + dy + 'px) scale(' + scale + ')';
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
   function applySyncFromMap(map, force) {
     if (!map) return;
 
     var stack = document.getElementById('embed-stack');
-    if (stack) stack.style.transform = '';
+    if (stack) {
+      stack.style.transform = '';
+      stack.style.transformOrigin = '50% 50%';
+    }
 
     var view = force ? viewFromCities(map, true) : viewFromLeafletCenter(map);
 
@@ -155,8 +176,14 @@
       embedShellSize().w +
       'x' +
       embedShellSize().h;
-    if (!force && key === lastSyncKey) return;
+    if (!force && key === lastSyncKey) {
+      if (stack) stack.style.transform = '';
+      return;
+    }
     lastSyncKey = key;
+
+    lastLoadedCenter = L.latLng(view.lat, view.lng);
+    lastLoadedZoom = view.zoom;
 
     if (force) {
       publishRefMarker(map, view);
@@ -289,7 +316,10 @@
 
     map.on('move', function () {
       syncVectorToMain(map);
-      if (hasOpenEmbeds() && typeof global.__sisnagUpdateCityReferenceMarkers === 'function') {
+      if (hasOpenEmbeds()) {
+        updateIframeTransform(map);
+      }
+      if (typeof global.__sisnagUpdateCityReferenceMarkers === 'function') {
         global.__sisnagUpdateCityReferenceMarkers(map);
       }
     });
