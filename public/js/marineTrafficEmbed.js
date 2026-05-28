@@ -44,9 +44,11 @@
     if (btnClose && panel) {
       btnClose.addEventListener('click', () => {
         panel.classList.remove('is-open');
-        var chk = document.getElementById('sisnag-layer-mt');
-        if (chk) chk.checked = false;
-        if (typeof global.__sisnagRefreshEmbedCombo === 'function') global.__sisnagRefreshEmbedCombo();
+        if (typeof global.__sisnagSelectDefaultMapView === 'function') {
+          global.__sisnagSelectDefaultMapView();
+        } else {
+          if (typeof global.__sisnagRefreshEmbedCombo === 'function') global.__sisnagRefreshEmbedCombo();
+        }
       });
     }
     if (btnSync) btnSync.addEventListener('click', syncIframeFromMap);

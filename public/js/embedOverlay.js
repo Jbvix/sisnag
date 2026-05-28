@@ -40,7 +40,7 @@
       el.stack.classList.remove('has-open-pointer');
       el.stack.setAttribute('aria-hidden', 'true');
     }
-    el.stack.classList.toggle('sisnag-combo-active', isComboActive());
+    el.stack.classList.toggle('sisnag-combo-active', false);
     if (isWindyOpen() || isMtOpen()) {
       if (typeof global.__sisnagSetEmbedDriveMode === 'function') {
         global.__sisnagSetEmbedDriveMode(true);
@@ -58,15 +58,16 @@
     var el = panels();
     if (el.windy) el.windy.classList.remove('is-open');
     if (el.mt) el.mt.classList.remove('is-open');
+    if (el.osm) el.osm.classList.remove('is-open');
     global.__sisnagRefreshEmbedCombo();
   };
 
-  /** Abre Windy + Marine Traffic sobrepostos e sincroniza com a derrota. */
+  /** Abre Windy e sincroniza com a derrota. */
   global.__sisnagOpenWindyMtOverlay = function (map) {
     var el = panels();
     if (el.osm) el.osm.classList.remove('is-open');
+    if (el.mt) el.mt.classList.remove('is-open');
     if (el.windy) el.windy.classList.add('is-open');
-    if (el.mt) el.mt.classList.add('is-open');
     global.__sisnagRefreshEmbedCombo();
     if (map && typeof global.__sisnagSyncEmbedsToRoute === 'function') {
       setTimeout(function () {

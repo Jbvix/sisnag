@@ -55,7 +55,11 @@
       btnClose.addEventListener('click', function () {
         panel.classList.remove('is-open');
         setStatus('Alvos: —');
-        if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
+        if (typeof global.__sisnagSelectDefaultMapView === 'function') {
+          global.__sisnagSelectDefaultMapView();
+        } else {
+          if (typeof global.__sisnagRefreshEmbedStack === 'function') global.__sisnagRefreshEmbedStack();
+        }
       });
     }
     if (btnSync) btnSync.addEventListener('click', syncIframeFromMap);

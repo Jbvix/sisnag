@@ -293,67 +293,19 @@
     #windy-panel.is-open { z-index: 1; }
     #mt-panel.is-open { z-index: 2; }
     #osm-panel.is-open { z-index: 3; }
-    #embed-stack.sisnag-combo-active #windy-panel .embed-toolbar,
-    #embed-stack.sisnag-combo-active #mt-panel .embed-toolbar,
-    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #windy-panel .embed-toolbar,
-    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #mt-panel .embed-toolbar {
-      display: none !important;
-    }
-    #embed-stack.sisnag-combo-active #embed-overlay-toolbar,
-    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #embed-overlay-toolbar {
-      display: flex;
-    }
-    #embed-stack.sisnag-combo-active #windy-panel.is-open,
-    #embed-stack.sisnag-combo-active #mt-panel.is-open,
-    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #windy-panel,
-    #embed-stack:has(#windy-panel.is-open):has(#mt-panel.is-open) #mt-panel {
-      top: 48px;
-    }
+
     #embed-stack:has(#windy-panel.is-open) .embed-toolbar,
     #embed-stack:has(#mt-panel.is-open) .embed-toolbar,
-    #embed-stack:has(#osm-panel.is-open) .embed-toolbar,
-    #embed-stack.sisnag-combo-active #embed-overlay-toolbar {
+    #embed-stack:has(#osm-panel.is-open) .embed-toolbar {
       padding-left: max(12px, var(--sisnag-dock-gutter));
       padding-right: max(12px, var(--sisnag-dock-gutter-right));
       box-sizing: border-box;
     }
 
-    #embed-overlay-toolbar {
-      display: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 10;
-      flex-wrap: nowrap;
-      gap: 6px;
-      align-items: center;
-      padding: 8px 12px;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: thin;
-      background: rgba(15, 23, 42, 0.96);
-      border-bottom: 1px solid #475569;
-      color: #e2e8f0;
-      font-size: 13px;
-      pointer-events: auto;
-    }
-    #embed-overlay-toolbar .embed-overlay-title {
-      font-weight: 700;
-      margin-right: 4px;
-    }
-    #embed-overlay-toolbar button.primary { background: #1d4ed8; }
-
-    /* Transparência — iframe ocupa a mesma área que o mapa Leaflet */
-    #windy-panel.is-open .embed-shell { opacity: var(--sisnag-windy-opacity); }
-    #mt-panel.is-open .embed-shell { opacity: var(--sisnag-mt-opacity); }
-    #osm-panel.is-open .embed-shell { opacity: var(--sisnag-osm-opacity); }
-    #embed-stack.sisnag-combo-active #windy-panel.is-open .embed-shell {
-      opacity: var(--sisnag-windy-opacity);
-    }
-    #embed-stack.sisnag-combo-active #mt-panel.is-open .embed-shell {
-      opacity: var(--sisnag-mt-opacity);
-    }
+    /* Opacidade total para melhor visualização */
+    #windy-panel.is-open .embed-shell { opacity: 1; }
+    #mt-panel.is-open .embed-shell { opacity: 1; }
+    #osm-panel.is-open .embed-shell { opacity: 1; }
 
     .embed-toolbar {
       position: relative;
@@ -777,13 +729,6 @@
   <div id="map"></div>
 
   <div id="embed-stack" class="embed-stack embed-interact" aria-hidden="true" role="region" aria-label="Camadas sobrepostas Windy e Marine Traffic">
-    <div id="embed-overlay-toolbar" class="embed-overlay-toolbar" aria-label="Windy e Marine Traffic sobrepostos">
-      <span class="embed-overlay-title">🌬️ Windy + 🚢 Marine Traffic</span>
-      <button type="button" id="overlay-sync" class="primary" title="Alinha Windy e MT pelas cidades visíveis e pela derrota">↻ Alinhar cidades + derrota</button>
-      <button type="button" id="overlay-close-all" title="Fechar ambas as camadas">✕ Fechar</button>
-      <button type="button" id="overlay-mt-capture">📸 Captura → Grok</button>
-      <button type="button" id="overlay-mt-refresh">🔔 Socket refresh</button>
-    </div>
     <div id="windy-panel" class="embed-panel" aria-label="Windy meteorologia">
       <div class="embed-toolbar windy-toolbar">
         <span style="font-weight:700;">Windy — ecrã completo</span>
