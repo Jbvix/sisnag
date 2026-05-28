@@ -240,25 +240,6 @@
           <label class="sisnag-row"><input type="radio" name="sisnag-map-view" value="windy" /> 🌬️ Meteorologia (Windy)</label>
           <label class="sisnag-row"><input type="radio" name="sisnag-map-view" value="mt" /> 🚢 Tráfego Marítimo (Marine Traffic)</label>
           <label class="sisnag-row"><input type="radio" name="sisnag-map-view" value="osm" /> ⚓ Carta Náutica (OpenSeaMap)</label>
-
-          <p class="sisnag-layers-hint">Mapa base (Mapa Padrão)</p>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="tuglife" checked /> ⚓ Cartas Náuticas (TugLife)</label>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="carto" /> 🗺️ Ruas (CARTO / OSM)</label>
-          <label class="sisnag-row"><input type="radio" name="sisnag-base" value="satellite" /> 🛰️ Satélite (Esri)</label>
-
-          <p class="sisnag-layers-hint">Sobreposições (Mapa Padrão)</p>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-seamark" checked /> Balizagem OpenSeaMap</label>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-osm-depth" /> Batimetria OpenSeaMap</label>
-
-          <p class="sisnag-layers-hint">Controles de Alinhamento</p>
-          <button type="button" class="sisnag-panel-btn sisnag-panel-btn--primary" id="sisnag-align-btn">↻ Alinhar cidades + derrota</button>
-          <p class="sisnag-layers-hint" style="font-size:11px;color:#64748b;margin-top:4px;text-transform:none;letter-spacing:normal;">
-            Toque para fixar o centro do mapa pelas cidades visíveis (marcadores azuis) e derrota.
-          </p>
-
-          <p class="sisnag-layers-hint">Opções</p>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-click-through" checked /> Mapa comanda (arrastar move a derrota; Windy/MT/OSM seguem)</label>
-          <label class="sisnag-row"><input type="checkbox" id="sisnag-embed-touch-windy" /> Permitir tocar nos mapas externos (pode desalinhar)</label>
         </div>
       </aside>
     `;
@@ -350,17 +331,23 @@
       var touch = document.getElementById('sisnag-embed-touch-windy');
       var driveOn = !drive || drive.checked;
       var touchOn = touch && touch.checked;
+      var anyOpen = !!(document.getElementById('windy-panel')?.classList.contains('is-open') ||
+                       document.getElementById('mt-panel')?.classList.contains('is-open') ||
+                       document.getElementById('osm-panel')?.classList.contains('is-open'));
+
       if (driveOn && !touchOn) {
         embedStack.classList.add('embed-click-through');
         embedStack.classList.remove('sisnag-allow-embed-touch');
-        document.body.classList.add('sisnag-embed-drive');
+        if (anyOpen) {
+          document.body.classList.add('sisnag-embed-drive');
+        } else {
+          document.body.classList.remove('sisnag-embed-drive');
+        }
       } else {
         embedStack.classList.remove('embed-click-through');
         if (touchOn) embedStack.classList.add('sisnag-allow-embed-touch');
         else embedStack.classList.remove('sisnag-allow-embed-touch');
-        if (!document.getElementById('windy-panel')?.classList.contains('is-open') &&
-            !document.getElementById('mt-panel')?.classList.contains('is-open') &&
-            !document.getElementById('osm-panel')?.classList.contains('is-open')) {
+        if (!anyOpen) {
           document.body.classList.remove('sisnag-embed-drive');
         }
       }
@@ -407,15 +394,20 @@
     });
 
     var chkSeamark = root.querySelector('#sisnag-osm-seamark');
-    chkSeamark.addEventListener('change', function (e) {
-      toggleOverlay(seamark, 'seamark', e.target.checked);
-    });
-    root.querySelector('#sisnag-osm-depth').addEventListener('change', function (e) {
-      toggleOverlay(depth, 'depth', e.target.checked);
-    });
+    if (chkSeamark) {
+      chkSeamark.addEventListener('change', function (e) {
+        toggleOverlay(seamark, 'seamark', e.target.checked);
+      });
+      chkSeamark.checked = true;
+    }
+    var chkDepth = root.querySelector('#sisnag-osm-depth');
+    if (chkDepth) {
+      chkDepth.addEventListener('change', function (e) {
+        toggleOverlay(depth, 'depth', e.target.checked);
+      });
+    }
 
     /** Balizagem activa ao arranque; espelho no overlay vectorial quando existir. */
-    chkSeamark.checked = true;
     toggleOverlay(seamark, 'seamark', true);
 
     global.__sisnagRefreshOsmOverlays = function () {
