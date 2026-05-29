@@ -26,6 +26,24 @@
       return L.tileLayer(url, Object.assign({}, tCommon, opts, { className: 'sisnag-base-' + id }));
     }
 
+    function validateZoomLimits(mapInstance, min, max) {
+      if (!mapInstance) return;
+      try {
+        var currentZoom = mapInstance.getZoom();
+        if (typeof currentZoom !== 'number' || !Number.isFinite(currentZoom)) {
+          currentZoom = 9;
+        }
+        var targetZoom = Math.max(min, Math.min(max, Math.round(currentZoom)));
+        mapInstance.setMinZoom(min);
+        mapInstance.setMaxZoom(max);
+        if (mapInstance.getZoom() !== targetZoom) {
+          mapInstance.setZoom(targetZoom);
+        }
+      } catch (e) {
+        /* ignore */
+      }
+    }
+
     var baseTuglife = makeBase(
       'tuglife',
       'https://charts.tuglife.live/tiles/{z}/{x}/{y}.png',
@@ -87,7 +105,8 @@
     }
 
     var seamark = L.tileLayer('https://t1.openseamap.org/seamark/{z}/{x}/{y}.png', {
-      maxZoom: 18,
+      maxZoom: 22,
+      maxNativeZoom: 18,
       opacity: 1,
       detectRetina: false,
       pane: 'sisnagSeamarkPane',
@@ -95,7 +114,8 @@
     });
 
     var depth = L.tileLayer('https://t1.openseamap.org/depth/{z}/{x}/{y}.png', {
-      maxZoom: 18,
+      maxZoom: 22,
+      maxNativeZoom: 18,
       opacity: 0.85,
       detectRetina: false,
       pane: 'sisnagDepthPane',
@@ -142,6 +162,7 @@
     var activeBase = baseTuglife;
     activeBase.addTo(map);
     setActiveBaseLabel('tuglife');
+    validateZoomLimits(map, 5, 22);
 
     function tryNextBaseFallback() {
       fallbackIndex++;
@@ -180,7 +201,8 @@
         if (on) {
           if (!seamarkMirror) {
             seamarkMirror = L.tileLayer('https://t1.openseamap.org/seamark/{z}/{x}/{y}.png', {
-              maxZoom: 18,
+              maxZoom: 22,
+              maxNativeZoom: 18,
               opacity: 1,
               detectRetina: false,
             });
@@ -193,7 +215,8 @@
         if (on) {
           if (!depthMirror) {
             depthMirror = L.tileLayer('https://t1.openseamap.org/depth/{z}/{x}/{y}.png', {
-              maxZoom: 18,
+              maxZoom: 22,
+              maxNativeZoom: 18,
               opacity: 0.85,
               detectRetina: false,
             });
@@ -270,6 +293,7 @@
       if (osmPanel) osmPanel.classList.remove('is-open');
 
       if (view === 'windy') {
+        validateZoomLimits(map, 3, 11);
         if (windyPanel) windyPanel.classList.add('is-open');
         refreshEmbedStack();
         updateEmbedPointerMode();
@@ -279,6 +303,7 @@
           }
         }, 100);
       } else if (view === 'mt') {
+        validateZoomLimits(map, 2, 17);
         if (typeof global.openMarineTrafficPanel === 'function') {
           global.openMarineTrafficPanel();
         } else {
@@ -287,6 +312,7 @@
           updateEmbedPointerMode();
         }
       } else if (view === 'osm') {
+        validateZoomLimits(map, 3, 18);
         if (typeof global.openOpenSeaMapPanel === 'function') {
           global.openOpenSeaMapPanel();
         } else {
@@ -296,6 +322,7 @@
         }
       } else {
         // 'sisnag'
+        validateZoomLimits(map, 5, 22);
         if (activeBase !== baseTuglife) {
           switchBase(baseTuglife, 'tuglife');
           fallbackIndex = 0;
