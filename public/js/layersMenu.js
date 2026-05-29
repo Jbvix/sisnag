@@ -30,7 +30,8 @@
       'tuglife',
       'https://charts.tuglife.live/tiles/{z}/{x}/{y}.png',
       {
-        maxZoom: 18,
+        maxZoom: 22,
+        maxNativeZoom: 18,
         attribution: '&copy; Marinha do Brasil / TugLife Charts',
       },
     );
@@ -160,8 +161,9 @@
     baseFallbackChain.forEach(function (layer) {
       layer.on('tileerror', function () {
         if (layer !== activeBase) return;
+        if (layer === baseTuglife) return; // Nunca faz fallback automático se a base ativa for TugLife
         baseFailCount++;
-        if (baseFailCount >= 3) {
+        if (baseFailCount >= 15) {
           baseFailCount = 0;
           tryNextBaseFallback();
         }
@@ -294,6 +296,11 @@
         }
       } else {
         // 'sisnag'
+        if (activeBase !== baseTuglife) {
+          switchBase(baseTuglife, 'tuglife');
+          fallbackIndex = 0;
+          baseFailCount = 0;
+        }
         refreshEmbedStack();
         updateEmbedPointerMode();
       }
