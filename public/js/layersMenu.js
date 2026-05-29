@@ -23,7 +23,8 @@
     }
 
     function makeBase(id, url, opts) {
-      return L.tileLayer(url, Object.assign({}, tCommon, opts, { className: 'sisnag-base-' + id }));
+      var tileFactory = L.tileLayer.fallback || L.tileLayer;
+      return tileFactory(url, Object.assign({}, tCommon, opts, { className: 'sisnag-base-' + id }));
     }
 
     function validateZoomLimits(mapInstance, min, max) {
