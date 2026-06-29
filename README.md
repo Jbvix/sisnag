@@ -84,4 +84,15 @@ Se `curl` a `https://<o-seu-dominio>.up.railway.app/health` devolver **404** com
 - O **deploy** usa `startCommand`: `node server.js` (sem `npm start`) para o processo ser o próprio Node. O **`healthcheckTimeout`** está alto (300 s) por defeito para arranques lentos.
 - O aviso **`npm warn config production Use --omit=dev`** vem da combinação **NPM 10 + `NODE_ENV=production`**; é cosmético. Pode ignorar ou definir nas variáveis do serviço: `NPM_CONFIG_OMIT=dev`.
 
-Repositório: [github.com/Jbvix/sisnag](https://github.com/Jbvix/sisnag.git).
+Repositório: [github.com/Jbvix/sisnag](https://github.com/Jbvix/sisnag.git.
+
+## Licença e Copyright
+
+**Copyright (c) 2026 Jossian Brito**
+
+Este projeto é licenciado sob a **Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0)**.
+
+- Uso comercial não é permitido sem autorização expressa prévia do autor.
+- A atribuição ao autor original é obrigatória.
+
+O texto completo da licença está no arquivo [LICENSE](LICENSE).
